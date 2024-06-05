@@ -4,7 +4,6 @@ class Reader:
     def __init__(self, grad_file):
         self.grad = self.parse_grad(grad_file)
 
-    @staticmethod
     def parse_grad(file_path):
         with open(file_path, 'r') as file:
             lines = file.readlines()
