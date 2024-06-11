@@ -13,7 +13,7 @@ def calculate_gradient(e_I: float, e_J: float, d_e: np.ndarray):
     Args:
         e_I (float): The total energy of state I
         e_J (float): The total energy of state J
-        d_e (np.ndarray]): The matrix of energy derivatives for both states - [[eIx, eIy, eIz], [eJx, eJy, eJz]]
+        d_e (np.ndarray): The matrix of energy derivatives for both states - [[eIx, eIy, eIz], [eJx, eJy, eJz]]
     """
 
     # Calculate energy difference
