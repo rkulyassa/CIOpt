@@ -104,16 +104,16 @@ def parse_energy_gradients(system_output_file: str) -> np.ndarray:
     while not lines[f].startswith('Net gradient'):
         f += 1
     
-    energy_derivatives = []
+    energy_gradients = []
 
     for line in lines[i+3:f-1]:
         data = line.split()
         coordinates = [float(c) for c in data]
-        energy_derivatives.append(coordinates)
+        energy_gradients.append(coordinates)
     
-    return np.array(energy_derivatives, dtype=object)
+    return np.array(energy_gradients, dtype=object)
 
-def get_objective_gradients(e_I: float, e_J: float, d_e_I: np.ndarray, d_e_J: np.ndarray) -> np.ndarray:
+def get_objective_gradients(e_I: float, e_J: float, d_e_I: np.ndarray, d_e_J: np.ndarray, alpha: float = ALPHA, sigma: float = SIGMA) -> np.ndarray:
 
     """
     Based on Levine pg. 407 eq. 7.
@@ -121,15 +121,15 @@ def get_objective_gradients(e_I: float, e_J: float, d_e_I: np.ndarray, d_e_J: np
     Args:
         e_I (float): The total energy of state I.
         e_J (float): The total energy of state J.
-        d_e_I (np.ndarray): The matrix (N,3) of energy derivatives for each atom in state I.
-        d_e_J (np.ndarray): The matrix (N,3) of energy derivatives for each atom in state J.
+        d_e_I (np.ndarray): The matrix (N,3) of energy gradients for each atom in state I.
+        d_e_J (np.ndarray): The matrix (N,3) of energy gradients for each atom in state J.
     
     Returns:
         np.ndarray: The matrix (N,3) of objective gradients for each atom.
     """
 
-    # Merge energy derivatives into one matrix (N,2,3). N atoms, 2 states, 3 dimensions
-    d_e = np.stack((d_e_i, d_e_j), axis=1)
+    # Merge energy gradient matrices into one matrix (N,2,3). N atoms, 2 states, 3 dimensions
+    d_e = np.stack((d_e_I, d_e_J), axis=1)
 
     # Calculate energy difference
     e_diff = e_I - e_J
@@ -141,10 +141,10 @@ def get_objective_gradients(e_I: float, e_J: float, d_e_I: np.ndarray, d_e_J: np
     d_e_avg = np.mean(d_e, axis=1)
     
     # Evaluate penalty fn.
-    d_pen = ((e_diff * e_diff + 2 * ALPHA * e_diff) / ((e_diff + ALPHA) * (e_diff + ALPHA))) * d_e_diff
+    d_pen = ((e_diff * e_diff + 2 * alpha * e_diff) / ((e_diff + alpha) * (e_diff + alpha))) * d_e_diff
 
     # Evaluate objective fn.
-    d_obj = d_e_avg + SIGMA * d_pen
+    d_obj = d_e_avg + sigma * d_pen
 
     # print('Energy difference:', e_diff)
     # print('Energy derivative differences:', d_e_diff)
@@ -175,7 +175,7 @@ if __name__ == '__main__':
     e_j = energies[1]
 
     d_e_i = parse_energy_gradients('./GRAD/geom.out')
-    d_e_j = parse_energy_gradients('./GRAD/geom.out') # need energy derivatives for 2nd state
+    d_e_j = parse_energy_gradients('./GRAD/geom.out') # need energy gradients for 2nd state
     objective_gradient = get_objective_gradients(e_i, e_j, d_e_i, d_e_j)
 
     print(objective_gradient)
