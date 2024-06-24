@@ -4,10 +4,19 @@ import re
 # User-defined constants:
 ALPHA = 0.02 # Hartree
 SIGMA = 3.5 # Hartree
+GAMMA = 0.01 # Step size
 STEP_TOL = 0.000001 # Hartree
 GRAD_TOL = 0.0005 # Hartree/Bohr
 
-def parse_system_gradient(gradient_file: str) -> np.ndarray:
+def parse_system_gradients(gradient_file: str) -> np.ndarray:
+    """
+    Args:
+        gradient_file (str): The gradient file to read from.
+    
+    Returns:
+        np.ndarray: The matrix (N,3) of gradients for each atom.
+    """
+
     with open(gradient_file, 'r') as file:
         lines = file.readlines()
     
@@ -24,6 +33,14 @@ def parse_system_gradient(gradient_file: str) -> np.ndarray:
     return np.array(gradient, dtype=object)
 
 def parse_geometry(geometry_file: str) -> np.ndarray:
+    """
+    Args:
+        geometry_file (str): The geometry file to read from.
+    
+    Returns:
+        np.ndarray: The matrix (N,3) of nuclear coordinates.
+    """
+
     with open(geometry_file, 'r') as file:
         lines = file.readlines()
     
@@ -39,7 +56,15 @@ def parse_geometry(geometry_file: str) -> np.ndarray:
     
     return np.array(geometry, dtype=object)
 
-def parse_energy_states(system_output_file: str) -> np.ndarray:
+def parse_total_energies(system_output_file: str) -> list[float]:
+    """
+    Args:
+        system_output_file (str): The system output file to read from.
+    
+    Returns:
+        list[float]: The list of total energies for each energy state.
+    """
+
     with open(system_output_file, 'r') as file:
         lines = file.readlines()
     
@@ -58,10 +83,16 @@ def parse_energy_states(system_output_file: str) -> np.ndarray:
         energy = float(data[2])
         energy_states.append(energy)
     
-    return np.array(energy_states, dtype=object)
+    return energy_states
 
-
-def parse_energy_derivatives(system_output_file: str) -> np.ndarray:
+def parse_energy_gradients(system_output_file: str) -> np.ndarray:
+    """
+    Args:
+        system_output_file (str): The system output file to read from.
+    
+    Returns:
+        np.ndarray: The matrix (N,3) of energy gradients for each atom.
+    """
     with open(system_output_file, 'r') as file:
         lines = file.readlines()
 
@@ -82,18 +113,23 @@ def parse_energy_derivatives(system_output_file: str) -> np.ndarray:
     
     return np.array(energy_derivatives, dtype=object)
 
-def get_objective_gradient(e_I: float, e_J: float, d_e: np.ndarray) -> np.ndarray:
+def get_objective_gradients(e_I: float, e_J: float, d_e_I: np.ndarray, d_e_J: np.ndarray) -> np.ndarray:
+
     """
-    Based on Levine pg. 407 eq. 7
+    Based on Levine pg. 407 eq. 7.
 
     Args:
-        e_I (float): The total energy of state I
-        e_J (float): The total energy of state J
-        d_e (np.ndarray): The matrix (shape: Nx2x3) of energy derivatives. N atoms, 2 states, 3 dimensions
+        e_I (float): The total energy of state I.
+        e_J (float): The total energy of state J.
+        d_e_I (np.ndarray): The matrix (N,3) of energy derivatives for each atom in state I.
+        d_e_J (np.ndarray): The matrix (N,3) of energy derivatives for each atom in state J.
     
     Returns:
-        np.ndarray: The objective gradient for each atom (shape: Nx3).
+        np.ndarray: The matrix (N,3) of objective gradients for each atom.
     """
+
+    # Merge energy derivatives into one matrix (N,2,3). N atoms, 2 states, 3 dimensions
+    d_e = np.stack((d_e_i, d_e_j), axis=1)
 
     # Calculate energy difference
     e_diff = e_I - e_J
@@ -118,28 +154,31 @@ def get_objective_gradient(e_I: float, e_J: float, d_e: np.ndarray) -> np.ndarra
 
     return d_obj
 
-def steepest_descent(geometry: np.ndarray, gradient: np.ndarray):
+def steepest_descent(geometry: np.ndarray, gradient: np.ndarray, gamma: float = GAMMA) -> np.ndarray:
     """
     Steps a geometric system based on steepest descent gradient method.
 
     Args:
+        geometry (np.ndarray): The matrix (N,3) of nuclear coordinates.
+        gradient (np.ndarray): The matrix (N,3) of energy gradients.
+        gamma (float): The step size.
 
+    Returns:
+        np.ndarray: The resultant geometry; matrix (N,3) of nuclear coordinates.
     """
 
-
+    return geometry - gamma * gradient
 
 if __name__ == '__main__':
-    energy_states = parse_energy_states('./GRAD/geom.out')
-    energy_derivatives = parse_energy_derivatives('./GRAD/geom.out')
-    state_i = energy_states[0]
-    state_j = energy_states[1]
-    objective_gradient = get_objective_gradient(state_i, state_j, energy_derivatives)
+    energies = parse_total_energies('./GRAD/geom.out')
+    e_i = energies[0]
+    e_j = energies[1]
+
+    d_e_i = parse_energy_gradients('./GRAD/geom.out')
+    d_e_j = parse_energy_gradients('./GRAD/geom.out') # need energy derivatives for 2nd state
+    objective_gradient = get_objective_gradients(e_i, e_j, d_e_i, d_e_j)
 
     print(objective_gradient)
 
-    # system_gradient = parse_system_gradient('./GRAD/scr.geom/grad.xyz')
-    # print(system_gradient)
-    # objective_gradient = get_objective_gradient(5, 8, np.array([[1,2,2], [3,1,5]]))
-    # print(objective_gradient)
-    # geometry = parse_geometry('./GRAD/geom.xyz')
-    # print(geometry)
+    initial_geometry = parse_geometry('./GRAD/geom.xyz')
+    final_geometry = steepest_descent(initial_geometry, objective_gradient)
