@@ -39,6 +39,49 @@ def parse_geometry(geometry_file: str) -> np.ndarray:
     
     return np.array(geometry, dtype=object)
 
+def parse_energy_states(system_output_file: str) -> np.ndarray:
+    with open(system_output_file, 'r') as file:
+        lines = file.readlines()
+    
+    i = 0
+    while not lines[i].__contains__('Total Energy (a.u.)'):
+        i += 1
+    
+    f = i
+    while not lines[f] == '\n':
+        f += 1
+
+    energy_states = []
+
+    for line in lines[i+2:f]:
+        data = line.split()
+        energy = float(data[2])
+        energy_states.append(energy)
+    
+    return np.array(energy_states, dtype=object)
+
+
+def parse_energy_derivatives(system_output_file: str) -> np.ndarray:
+    with open(system_output_file, 'r') as file:
+        lines = file.readlines()
+
+    i = 0
+    while not lines[i].startswith('Gradient units'):
+        i += 1
+    
+    f = i
+    while not lines[f].startswith('Net gradient'):
+        f += 1
+    
+    energy_derivatives = []
+
+    for line in lines[i+3:f-1]:
+        data = line.split()
+        coordinates = [float(c) for c in data]
+        energy_derivatives.append(coordinates)
+    
+    return np.array(energy_derivatives, dtype=object)
+
 def get_objective_gradient(e_I: float, e_J: float, d_e: np.ndarray) -> np.ndarray:
     """
     Based on Levine pg. 407 eq. 7
@@ -46,17 +89,20 @@ def get_objective_gradient(e_I: float, e_J: float, d_e: np.ndarray) -> np.ndarra
     Args:
         e_I (float): The total energy of state I
         e_J (float): The total energy of state J
-        d_e (np.ndarray): The matrix of energy derivatives for both states - [[eIx, eIy, eIz], [eJx, eJy, eJz]]
+        d_e (np.ndarray): The matrix (shape: Nx2x3) of energy derivatives. N atoms, 2 states, 3 dimensions
+    
+    Returns:
+        np.ndarray: The objective gradient for each atom (shape: Nx3).
     """
 
     # Calculate energy difference
     e_diff = e_I - e_J
 
     # Calculate energy derivative differences
-    d_e_diff = d_e[0] - d_e[1]
+    d_e_diff = d_e[:, 0, :] - d_e[:, 1, :]
 
     # Calculate energy derivative averages
-    d_e_avg = np.mean(d_e, axis=0)
+    d_e_avg = np.mean(d_e, axis=1)
     
     # Evaluate penalty fn.
     d_pen = ((e_diff * e_diff + 2 * ALPHA * e_diff) / ((e_diff + ALPHA) * (e_diff + ALPHA))) * d_e_diff
@@ -83,9 +129,17 @@ def steepest_descent(geometry: np.ndarray, gradient: np.ndarray):
 
 
 if __name__ == '__main__':
+    energy_states = parse_energy_states('./GRAD/geom.out')
+    energy_derivatives = parse_energy_derivatives('./GRAD/geom.out')
+    state_i = energy_states[0]
+    state_j = energy_states[1]
+    objective_gradient = get_objective_gradient(state_i, state_j, energy_derivatives)
+
+    print(objective_gradient)
+
     # system_gradient = parse_system_gradient('./GRAD/scr.geom/grad.xyz')
     # print(system_gradient)
     # objective_gradient = get_objective_gradient(5, 8, np.array([[1,2,2], [3,1,5]]))
     # print(objective_gradient)
-    geometry = parse_geometry('./GRAD/geom.xyz')
-    print(geometry)
+    # geometry = parse_geometry('./GRAD/geom.xyz')
+    # print(geometry)
