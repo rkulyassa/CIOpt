@@ -141,11 +141,19 @@ def write_final_geometry(num_atoms: str, ground_state_energy: str, atoms: list[s
         file.write('\n'.join(lines))
 
 if __name__ == '__main__':
-    output_file_state_i = './data/ryan_opt_data/s0/tera.o.31613262'
-    output_file_state_j = './data/ryan_opt_data/s1/tera.o.31613283'
-    geom_file = './data/ryan_opt_data/s0/geom.xyz'
-    grad_file_state_i = './data/ryan_opt_data/s0/scr.geom/grad.xyz'
-    grad_file_state_j = './data/ryan_opt_data/s1/scr.geom/grad.xyz'
+    input = {}
+    with open('./input.in', 'r') as file:
+        lines = file.readlines()
+        for line in lines:
+            data = line.split()
+            input[data[0]] = data[1]
+
+    state_i = input['state_i']
+    state_j = input['state_j']
+    grad_file_state_i = input['grad_i']
+    grad_file_state_j = input['grad_j']
+    geom_file = input['init_geom']
+    out_file = input['out_geom']
 
 
     e_i = parse_energy_data(grad_file_state_i)
@@ -158,10 +166,10 @@ if __name__ == '__main__':
     ground_state_energy = geometry_data[1]
     atoms = geometry_data[2]
     initial_geometry = geometry_data[3]
-    
+
     final_geometry = steepest_descent(initial_geometry, d_obj)
 
-    write_final_geometry(num_atoms, ground_state_energy, atoms, final_geometry, 'test_out.xyz')
+    write_final_geometry(num_atoms, ground_state_energy, atoms, final_geometry, out_file)
     
 
 

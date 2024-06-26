@@ -1,3 +1,9 @@
-method              terachem
-energy_state_i      0
-energy_state_j      1
+method      terachem
+template    terachem_template.sp
+state_i     0
+state_j     1
+grad_i      data/ryan_opt_data/s0/scr.geom/grad.xyz
+grad_j      data/ryan_opt_data/s1/scr.geom/grad.xyz
+init_geom   data/ryan_opt_data/s0/geom.xyz
+out_geom    geom.xyz
+max_iter    50
