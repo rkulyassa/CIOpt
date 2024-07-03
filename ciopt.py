@@ -1,5 +1,7 @@
+import os
+import shutil
 import numpy as np
-import re
+from interfaces.terachem import TeraChem
 
 # User-defined constants:
 ALPHA = 0.02 # Hartree
@@ -7,66 +9,6 @@ SIGMA = 3.5 # Hartree
 GAMMA = 0.01 # Step size
 STEP_TOL = 0.000001 # Hartree
 GRAD_TOL = 0.0005 # Hartree/Bohr
-
-def parse_geometry_data(geometry_file: str) -> list[str, str, list[str], np.ndarray]:
-    ''' Gets number of atoms, type of atoms, and system coordinates from geom file '''
-
-    with open(geometry_file, 'r') as file:
-        lines = file.readlines()
-    
-    num_atoms = re.sub(r'\D', '', lines[0])
-    ground_state_energy = lines[1][:-1]
-
-    atoms = []
-    geometry = []
-    
-    for line in lines[2:]:
-        data = line.split()
-        atom = data[0]
-        atoms.append(atom)
-        coordinates = [float(re.sub(r'\n', '', c)) for c in data[1:]]
-        geometry.append(coordinates)
-    
-    return [num_atoms, ground_state_energy, atoms, np.array(geometry, dtype=object)]
-
-def parse_energy_gradients(system_output_file: str) -> np.ndarray:
-    ''' *Deprecated* Gets energy gradients from TeraChem output '''
-
-    with open(system_output_file, 'r') as file:
-        lines = file.readlines()
-
-    i = 0
-    while not lines[i].startswith('Gradient units'):
-        i += 1
-    
-    f = i
-    while not lines[f].startswith('Net gradient'):
-        f += 1
-    
-    energy_gradients = []
-
-    for line in lines[i+3:f-1]:
-        data = line.split()
-        coordinates = [float(c) for c in data]
-        energy_gradients.append(coordinates)
-    
-    return np.array(energy_gradients, dtype=object)
-
-def parse_energy_data(gradient_file: str) -> list[float, np.ndarray]:
-    ''' Gets energy data (total energy and gradients) from energy gradient file '''
-    with open(gradient_file) as file:
-        lines = file.readlines()
-
-    total_energy = float(re.search(r'energy (-?\d+\.\d+)', lines[1]).group(1))
-    
-    energy_gradients = []
-
-    for line in lines[2:]:
-        data = line.split()
-        coordinates = [float(c) for c in data[1:]]
-        energy_gradients.append(coordinates)
-    
-    return [total_energy, energy_gradients]
 
 def get_objective(e_i: float, e_j: float, alpha: float = ALPHA, sigma: float = SIGMA) -> float:
     ''' Based on Levine pg. 407 eq. 3-6. '''
@@ -132,15 +74,9 @@ def steepest_descent(geometry: np.ndarray, gradient: np.ndarray, gamma: float = 
 
     return geometry - gamma * gradient
 
-def write_final_geometry(num_atoms: str, ground_state_energy: str, atoms: list[str], geometry: np.ndarray, output_file: str) -> None:
-    with open(output_file, 'w') as file:
-        lines = [num_atoms, ground_state_energy]
-        for i, atom in enumerate(atoms):
-            coordinates = ' '.join([f'{c:.8f}' for c in geometry[i]])
-            lines.append(f'{atom} {coordinates}')
-        file.write('\n'.join(lines))
-
 if __name__ == '__main__':
+
+    # Read Inputs
     input = {}
     with open('./input.in', 'r') as file:
         lines = file.readlines()
@@ -148,28 +84,49 @@ if __name__ == '__main__':
             data = line.split()
             input[data[0]] = data[1]
 
+    interface = input['interface']
+    template_file = input['template']
+    run_template_file = input['run_template']
     state_i = input['state_i']
     state_j = input['state_j']
-    grad_file_state_i = input['grad_i']
-    grad_file_state_j = input['grad_j']
+    grad_i_file = input['grad_i']
+    grad_j_file = input['grad_j']
     geom_file = input['init_geom']
     out_file = input['out_geom']
+    max_iter: int = int(input['max_iter'])
+    keep_scr: bool = input['keep_scr'].lower() == 'yes'
+
+    # Create scratch folders
+    if not os.path.exists('scr'):
+        os.makedirs('scr')
+        os.makedirs('scr/GRAD1')
+        os.makedirs('scr/GRAD2')
+    shutil.copy(template_file, 'scr/GRAD1/start.sp')
+    shutil.copy(template_file, 'scr/GRAD2/start.sp')
+    shutil.copy(run_template_file, 'scr/GRAD1/run.sh')
+    shutil.copy(run_template_file, 'scr/GRAD2/run.sh')
+    TeraChem.set_castarget('scr/GRAD1/start.sp', state_i)
+    TeraChem.set_castarget('scr/GRAD2/start.sp', state_j)
 
 
-    e_i = parse_energy_data(grad_file_state_i)
-    e_j = parse_energy_data(grad_file_state_j)
+    if interface == 'terachem':
+        e_i = TeraChem.parse_energy_data(grad_i_file)
+        e_j = TeraChem.parse_energy_data(grad_j_file)
+        d_obj = get_objective_gradients(e_i[0], e_j[0], e_i[1], e_i[1])
 
-    d_obj = get_objective_gradients(e_i[0], e_j[0], e_i[1], e_i[1])
+        geometry_data = TeraChem.parse_geometry_data(geom_file)
+        num_atoms = geometry_data[0]
+        ground_state_energy = geometry_data[1]
+        atoms = geometry_data[2]
+        initial_geometry = geometry_data[3]
 
-    geometry_data = parse_geometry_data(geom_file)
-    num_atoms = geometry_data[0]
-    ground_state_energy = geometry_data[1]
-    atoms = geometry_data[2]
-    initial_geometry = geometry_data[3]
+        final_geometry = steepest_descent(initial_geometry, d_obj)
+        
+        TeraChem.write_final_geometry(num_atoms, ground_state_energy, atoms, final_geometry, 'scr/GRAD1/geom.xyz')
+        TeraChem.write_final_geometry(num_atoms, ground_state_energy, atoms, final_geometry, 'scr/GRAD2/geom.xyz')
 
-    final_geometry = steepest_descent(initial_geometry, d_obj)
-
-    write_final_geometry(num_atoms, ground_state_energy, atoms, final_geometry, out_file)
+    if not keep_scr:
+        shutil.rmtree('scr')
     
 
 
