@@ -73,7 +73,7 @@ def steepest_descent(geometry: np.ndarray, gradient: np.ndarray, gamma: float = 
         np.ndarray: The resultant geometry; matrix (N,3) of nuclear coordinates.
     """
 
-    return geometry - gamma * gradient
+    return geometry + gamma * gradient
 
 if __name__ == '__main__':
 
