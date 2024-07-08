@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=ryan_s0
+#SBATCH --job-name="ci-opt-test"
+#SBATCH -o job.%j.out
+#SBATCH -e job.%j.err
 #SBATCH --account=tpl104
 #SBATCH --partition=gpu-shared
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=2
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=70G
+#SBATCH --mem=90G
 #SBATCH --gpus=1
-#SBATCH --time=01:00:00
-#SBATCH --output=tera.o.%j
+#SBATCH --time=1:00:00
+#SBATCH --export=ALL
 
 module reset
 ### ssl from centos7 container
@@ -36,5 +38,4 @@ export PATH=/home/vbhvsh0/Terachem//TeraChem/bin:$PATH
 ### PRELOAD MKL
 export LD_PRELOAD=$INTEL_MKLHOME/mkl/lib/intel64/libmkl_rt.so
 
-### Run Terachem
-terachem start.sp
+python ciopt.py
