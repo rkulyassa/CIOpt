@@ -41,14 +41,15 @@ def get_objective_gradients(e_i: float, e_j: float, d_e_i: np.ndarray, d_e_j: np
 
     # Calculate energy derivative differences
     d_e_diff = d_e[:, 0, :] - d_e[:, 1, :]
+    # print(d_e_diff)
 
     # Calculate energy derivative averages
     d_e_avg = np.mean(d_e, axis=1)
     
-    # Evaluate penalty fn.
+    # Get penalty fn. gradients
     d_pen = ((e_diff * e_diff + 2 * alpha * e_diff) / ((e_diff + alpha) * (e_diff + alpha))) * d_e_diff
 
-    # Evaluate objective fn.
+    # Get objective fn. gradients
     d_obj = d_e_avg + sigma * d_pen
 
     # print('Energy difference:', e_diff)
@@ -110,7 +111,7 @@ if __name__ == '__main__':
     if interface == 'terachem':
         e_i = TeraChem.parse_energy_data(grad_i_file)
         e_j = TeraChem.parse_energy_data(grad_j_file)
-        d_obj = get_objective_gradients(e_i[0], e_j[0], e_i[1], e_i[1])
+        d_obj = get_objective_gradients(e_i[0], e_j[0], e_i[1], e_j[1])
 
         geometry_data = TeraChem.parse_geometry_data(geom_file)
         num_atoms = geometry_data[0]
