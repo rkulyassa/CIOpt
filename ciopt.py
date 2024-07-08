@@ -86,7 +86,6 @@ if __name__ == '__main__':
 
     interface = input['interface']
     template_file = input['template']
-    run_template_file = input['run_template']
     state_i = input['state_i']
     state_j = input['state_j']
     multiplicity = input['multiplicity']
@@ -104,8 +103,6 @@ if __name__ == '__main__':
         os.makedirs('scr/GRAD2')
     shutil.copy(template_file, 'scr/GRAD1/start.sp')
     shutil.copy(template_file, 'scr/GRAD2/start.sp')
-    shutil.copy(run_template_file, 'scr/GRAD1/run.sh')
-    shutil.copy(run_template_file, 'scr/GRAD2/run.sh')
     TeraChem.update_start_file('scr/GRAD1/start.sp', state_i, multiplicity)
     TeraChem.update_start_file('scr/GRAD2/start.sp', state_j, multiplicity)
 
@@ -125,11 +122,14 @@ if __name__ == '__main__':
         
         TeraChem.write_final_geometry(num_atoms, ground_state_energy, atoms, final_geometry, 'scr/GRAD1/geom.xyz')
         TeraChem.write_final_geometry(num_atoms, ground_state_energy, atoms, final_geometry, 'scr/GRAD2/geom.xyz')
+    
+    # while not converged:
+    # blah blah blah
+    os.system('terachem ./scr/GRAD1/start.sp')
+    os.system('terachem ./scr/GRAD2/start.sp')
 
     if not keep_scr:
         shutil.rmtree('scr')
-    
-
 
 
 

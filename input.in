@@ -1,6 +1,5 @@
 interface       terachem
 template        template.sp
-run_template    run_tera.sh
 state_i         0
 state_j         1
 multiplicity    1
