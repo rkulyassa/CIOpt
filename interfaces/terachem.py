@@ -5,14 +5,15 @@ class TeraChem:
     def __init__(self):
         pass
 
-    def set_castarget(start_file: str, state: str) -> None:
+    def update_start_file(start_file: str, state: str, multiplicity: str) -> None:
         with open(start_file, 'r') as file:
             lines = file.readlines()
         
         for i, line in enumerate(lines):
             if line.strip().startswith('castarget'):
-                lines[i] = f"castarget               {state}               # target state for calculating gradient\n"
-                break
+                lines[i] = f'castarget               {state}               # target state for calculating gradient\n'
+            if line.strip().startswith('spinmult'):
+                lines[i] = f'spinmult                {multiplicity}               # Spin multiplicity\n'
         
         with open(start_file, 'w') as file:
             file.writelines(lines)

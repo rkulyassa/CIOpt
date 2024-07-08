@@ -89,6 +89,7 @@ if __name__ == '__main__':
     run_template_file = input['run_template']
     state_i = input['state_i']
     state_j = input['state_j']
+    multiplicity = input['multiplicity']
     grad_i_file = input['grad_i']
     grad_j_file = input['grad_j']
     geom_file = input['init_geom']
@@ -105,8 +106,8 @@ if __name__ == '__main__':
     shutil.copy(template_file, 'scr/GRAD2/start.sp')
     shutil.copy(run_template_file, 'scr/GRAD1/run.sh')
     shutil.copy(run_template_file, 'scr/GRAD2/run.sh')
-    TeraChem.set_castarget('scr/GRAD1/start.sp', state_i)
-    TeraChem.set_castarget('scr/GRAD2/start.sp', state_j)
+    TeraChem.update_start_file('scr/GRAD1/start.sp', state_i, multiplicity)
+    TeraChem.update_start_file('scr/GRAD2/start.sp', state_j, multiplicity)
 
 
     if interface == 'terachem':
