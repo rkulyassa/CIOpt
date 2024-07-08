@@ -10,10 +10,12 @@ class TeraChem:
             lines = file.readlines()
         
         for i, line in enumerate(lines):
-            if line.strip().startswith('castarget'):
+            if line == '\n': continue
+            key = line.strip().split()[0]
+            if key == 'castarget':
                 lines[i] = f'castarget               {state}               # target state for calculating gradient\n'
-            if line.strip().startswith('spinmult'):
-                lines[i] = f'spinmult                {multiplicity}               # Spin multiplicity\n'
+            if key == 'castargetmult':
+                lines[i] = f'castargetmult           {multiplicity}               # Spin multiplicity\n'
         
         with open(start_file, 'w') as file:
             file.writelines(lines)

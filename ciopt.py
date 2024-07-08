@@ -125,8 +125,9 @@ if __name__ == '__main__':
     
     # while not converged:
     # blah blah blah
-    os.system('terachem ./scr/GRAD1/start.sp')
-    os.system('terachem ./scr/GRAD2/start.sp')
+    print('ready to run terachem')
+    # os.system('cd scr/GRAD1 && terachem start.sp')
+    # os.system('cd scr/GRAD2 && terachem start.sp')
 
     if not keep_scr:
         shutil.rmtree('scr')
