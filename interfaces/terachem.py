@@ -32,6 +32,7 @@ class TeraChem:
         
         for line in lines[2:]:
             data = line.split()
+            if not data: continue
             atom = data[0]
             atoms.append(atom)
             coordinates = [float(re.sub(r'\n', '', c)) for c in data[1:]]
@@ -51,6 +52,7 @@ class TeraChem:
         for line in lines[2:]:
             data = line.split()
             coordinates = [float(c) for c in data[1:]]
+            if not coordinates: continue
             energy_gradients.append(coordinates)
         
         return [total_energy, energy_gradients]
