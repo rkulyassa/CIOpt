@@ -118,11 +118,11 @@ if __name__ == '__main__':
     i = 0
 
     while not converged and i < max_iter:
-        i += 1
 
         # Parse data
-        e_i = TeraChem.parse_energy_data('scr/GRAD1/scr.geom/grad.xyz')
-        e_j = TeraChem.parse_energy_data('scr/GRAD2/scr.geom/grad.xyz')
+        scr_index = i if i > 0 else ''
+        e_i = TeraChem.parse_energy_data(f'scr/GRAD1/scr.geom{scr_index}/grad.xyz')
+        e_j = TeraChem.parse_energy_data(f'scr/GRAD2/scr.geom{scr_index}/grad.xyz')
         e_total_i = e_i[0]
         e_total_j = e_j[0]
         e_grad_i = e_i[1]
@@ -141,14 +141,14 @@ if __name__ == '__main__':
         TeraChem.write_final_geometry(num_atoms, ground_state_energy, atoms, final_geometry, 'scr/GRAD2/geom.xyz')
 
         # Run QM
-        shutil.rmtree('scr/GRAD1/scr.geom')
-        shutil.rmtree('scr/GRAD2/scr.geom')
         os.system('cd scr/GRAD1 && terachem start.sp > tera.out')
         os.system('cd scr/GRAD2 && terachem start.sp > tera.out')
 
         # Append to log file
         with open(log_file, 'a') as file:
             file.write(f'{i} {e_total_i} {e_total_j} {e_total_j - e_total_i}\n')
+        
+        i += 1
 
     if not keep_scr:
         shutil.rmtree('scr')
