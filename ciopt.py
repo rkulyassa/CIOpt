@@ -141,10 +141,14 @@ if __name__ == '__main__':
         TeraChem.write_final_geometry(num_atoms, ground_state_energy, atoms, final_geometry, 'scr/GRAD2/geom.xyz')
 
         # Run QM
+        shutil.rmtree('scr/GRAD1/scr.geom')
+        shutil.rmtree('scr/GRAD2/scr.geom')
         os.system('cd scr/GRAD1 && terachem start.sp > tera.out')
         os.system('cd scr/GRAD2 && terachem start.sp > tera.out')
+
+        # Append to log file
         with open(log_file, 'a') as file:
-            file.write(e_total_i, e_total_j, e_total_j - e_total_i)
+            file.write(f'{i} {e_total_i} {e_total_j} {e_total_j - e_total_i}')
 
     if not keep_scr:
         shutil.rmtree('scr')
