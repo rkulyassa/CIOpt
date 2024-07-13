@@ -3,9 +3,15 @@ template        template.sp
 state_i         0
 state_j         1
 multiplicity    1
-grad_i          s0_grad.xyz
-grad_j          s1_grad.xyz
 init_geom       init_geom.xyz
 out_geom        geom.xyz
-max_iter        50
+log             log.out
+max_iter        3
 keep_scr        yes
+
+method          levine
+alpha           0.02
+sigma           3.5
+gamma           0.01
+step_tol        0.000001
+grad_tol        0.0005

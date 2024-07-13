@@ -77,27 +77,27 @@ def steepest_descent(geometry: np.ndarray, gradient: np.ndarray, gamma: float = 
 
 if __name__ == '__main__':
 
-    # Read Inputs
+    # Read inputs
     input = {}
     with open('./input.in', 'r') as file:
         lines = file.readlines()
         for line in lines:
             data = line.split()
-            input[data[0]] = data[1]
+            if data:
+                input[data[0]] = data[1]
 
     interface = input['interface']
     template_file = input['template']
     state_i = input['state_i']
     state_j = input['state_j']
     multiplicity = input['multiplicity']
-    grad_i_file = input['grad_i']
-    grad_j_file = input['grad_j']
     geom_file = input['init_geom']
     out_file = input['out_geom']
+    log_file = input['log']
     max_iter: int = int(input['max_iter'])
     keep_scr: bool = input['keep_scr'].lower() == 'yes'
 
-    # Create scratch folders
+    # Create scratch dir & files
     if not os.path.exists('scr'):
         os.makedirs('scr')
         os.makedirs('scr/GRAD1')
@@ -107,28 +107,42 @@ if __name__ == '__main__':
     TeraChem.update_start_file('scr/GRAD1/start.sp', state_i, multiplicity)
     TeraChem.update_start_file('scr/GRAD2/start.sp', state_j, multiplicity)
 
+    # Initial QM calculation
+    os.system('cd scr/GRAD1 && terachem start.sp > tera.out')
+    os.system('cd scr/GRAD2 && terachem start.sp > tera.out')
+    
+    # TODO: convergence criteria
+    converged = False
+    i = 0
 
-    if interface == 'terachem':
-        e_i = TeraChem.parse_energy_data(grad_i_file)
-        e_j = TeraChem.parse_energy_data(grad_j_file)
-        d_obj = get_objective_gradients(e_i[0], e_j[0], e_i[1], e_j[1])
+    while not converged or i < max_iter:
+        i += 1
 
-        geometry_data = TeraChem.parse_geometry_data(geom_file)
-        num_atoms = geometry_data[0]
-        ground_state_energy = geometry_data[1]
-        atoms = geometry_data[2]
-        initial_geometry = geometry_data[3]
+        # Parse data
+        e_i = TeraChem.parse_energy_data('scr/GRAD1/scr.geom/grad.xyz')
+        e_j = TeraChem.parse_energy_data('scr/GRAD2/scr.geom/grad.xyz')
+        e_total_i = e_i[0]
+        e_total_j = e_j[0]
+        e_grad_i = e_i[1]
+        e_grad_j = e_j[1]
+        geom_data = TeraChem.parse_geometry_data(geom_file)
+        num_atoms = geom_data[0]
+        ground_state_energy = geom_data[1]
+        atoms = geom_data[2]
+        initial_geometry = geom_data[3]
 
+        # Step geometry
+        d_obj = get_objective_gradients(e_total_i, e_total_j, e_grad_i, e_grad_j)
         final_geometry = steepest_descent(initial_geometry, d_obj)
-        
+
         TeraChem.write_final_geometry(num_atoms, ground_state_energy, atoms, final_geometry, 'scr/GRAD1/geom.xyz')
         TeraChem.write_final_geometry(num_atoms, ground_state_energy, atoms, final_geometry, 'scr/GRAD2/geom.xyz')
-    
-    # while not converged:
-    # blah blah blah
-    print('ready to run terachem')
-    # os.system('cd scr/GRAD1 && terachem start.sp')
-    # os.system('cd scr/GRAD2 && terachem start.sp')
+
+        # Run QM
+        os.system('cd scr/GRAD1 && terachem start.sp > tera.out')
+        os.system('cd scr/GRAD2 && terachem start.sp > tera.out')
+        with open(log_file, 'a') as file:
+            file.write(e_total_i, e_total_j, e_total_j - e_total_i)
 
     if not keep_scr:
         shutil.rmtree('scr')

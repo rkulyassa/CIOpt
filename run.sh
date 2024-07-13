@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name="ci-opt-test"
+#SBATCH --job-name=ci-opt-test
 #SBATCH -o job.%j.out
 #SBATCH -e job.%j.err
 #SBATCH --account=tpl104
