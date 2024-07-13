@@ -104,6 +104,8 @@ if __name__ == '__main__':
         os.makedirs('scr/GRAD2')
     shutil.copy(template_file, 'scr/GRAD1/start.sp')
     shutil.copy(template_file, 'scr/GRAD2/start.sp')
+    shutil.copy(geom_file, 'scr/GRAD1/geom.xyz')
+    shutil.copy(geom_file, 'scr/GRAD2/geom.xyz')
     TeraChem.update_start_file('scr/GRAD1/start.sp', state_i, multiplicity)
     TeraChem.update_start_file('scr/GRAD2/start.sp', state_j, multiplicity)
 
