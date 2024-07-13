@@ -1,7 +1,7 @@
 import numpy as np
 import re
 
-class TeraChem:
+class TeraChemIO:
     def __init__(self):
         pass
 
@@ -20,11 +20,33 @@ class TeraChem:
         with open(start_file, 'w') as file:
             file.writelines(lines)
 
-    def parse_geometry_data(geometry_file: str) -> list[str, str, list[str], np.ndarray]:
-        ''' Gets number of atoms, type of atoms, and system coordinates from geom file '''
+    # def parse_geometry(file: str) -> list[list[str], np.ndarray[float], list[float]]:
+    #     ''' Gets type of atoms, system coordinates, and masses from .geometry file '''
 
-        with open(geometry_file, 'r') as file:
-            lines = file.readlines()
+    #     with open(file, 'r') as f:
+    #         lines = f.readlines()
+        
+    #     atoms = []
+    #     geometry = []
+    #     masses = []
+
+    #     for line in lines[5:]:
+    #         data = line.split()
+    #         if not data: continue
+    #         atom = data[0]
+    #         atoms.append(atom)
+    #         coordinates = [float(c) for c in data[1:3]]
+    #         geometry.append(coordinates)
+    #         mass = float(data[4])
+    #         masses.append(mass)
+        
+    #     return [atoms, np.array(geometry, dtype=object), masses]
+
+    def parse_geometry(file: str) -> list[str, str, list[str], np.ndarray[float]]:
+        ''' Gets number of atoms, type of atoms, and system coordinates from .xyz file '''
+
+        with open(file, 'r') as f:
+            lines = f.readlines()
         
         num_atoms = re.sub(r'\D', '', lines[0])
         ground_state_energy = lines[1][:-1]
@@ -42,10 +64,10 @@ class TeraChem:
         
         return [num_atoms, ground_state_energy, atoms, np.array(geometry, dtype=object)]
     
-    def parse_energy_data(gradient_file: str) -> list[float, np.ndarray]:
+    def parse_energy_gradient(file: str) -> list[float, np.ndarray[float]]:
         ''' Gets energy data (total energy and gradients) from energy gradient file '''
-        with open(gradient_file) as file:
-            lines = file.readlines()
+        with open(file) as f:
+            lines = f.readlines()
 
         total_energy = float(re.search(r'energy (-?\d+\.\d+)', lines[1]).group(1))
         
@@ -59,7 +81,7 @@ class TeraChem:
         
         return [total_energy, energy_gradients]
     
-    def write_final_geometry(num_atoms: str, ground_state_energy: str, atoms: list[str], geometry: np.ndarray, output_file: str) -> None:
+    def write_geometry(num_atoms: str, ground_state_energy: str, atoms: list[str], geometry: np.ndarray[float], output_file: str) -> None:
         with open(output_file, 'w') as file:
             lines = [num_atoms, ground_state_energy]
             for i, atom in enumerate(atoms):

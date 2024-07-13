@@ -1,7 +1,7 @@
 import os
 import shutil
 import numpy as np
-from interfaces.terachem import TeraChem
+from interfaces import TeraChemIO
 
 # User-defined constants:
 ALPHA = 0.02 # Hartree
@@ -77,7 +77,7 @@ def steepest_descent(geometry: np.ndarray, gradient: np.ndarray, gamma: float = 
 
 if __name__ == '__main__':
 
-    # Read inputs
+    # Read input.in
     input = {}
     with open('./input.in', 'r') as file:
         lines = file.readlines()
@@ -97,17 +97,20 @@ if __name__ == '__main__':
     max_iter: int = int(input['max_iter'])
     keep_scr: bool = input['keep_scr'].lower() == 'yes'
 
-    # Create scratch dir & files
+    if interface == 'terachem':
+        stream_manager = TeraChemIO
+
+    # Setup scratch dir + files
     if not os.path.exists('scr'):
         os.makedirs('scr')
         os.makedirs('scr/GRAD1')
         os.makedirs('scr/GRAD2')
     shutil.copy(template_file, 'scr/GRAD1/start.sp')
     shutil.copy(template_file, 'scr/GRAD2/start.sp')
+    stream_manager.update_start_file('scr/GRAD1/start.sp', state_i, multiplicity)
+    stream_manager.update_start_file('scr/GRAD2/start.sp', state_j, multiplicity)
     shutil.copy(geom_file, 'scr/GRAD1/geom.xyz')
     shutil.copy(geom_file, 'scr/GRAD2/geom.xyz')
-    TeraChem.update_start_file('scr/GRAD1/start.sp', state_i, multiplicity)
-    TeraChem.update_start_file('scr/GRAD2/start.sp', state_j, multiplicity)
 
     # Initial QM calculation
     os.system('cd scr/GRAD1 && terachem start.sp > tera.out')
@@ -121,32 +124,33 @@ if __name__ == '__main__':
 
         # Parse data
         scr_index_str = f'.{i}' if i > 0 else ''
-        e_i = TeraChem.parse_energy_data(f'scr/GRAD1/scr.geom{scr_index_str}/grad.xyz')
-        e_j = TeraChem.parse_energy_data(f'scr/GRAD2/scr.geom{scr_index_str}/grad.xyz')
+        e_i = stream_manager.parse_energy_gradient(f'scr/GRAD1/scr.geom{scr_index_str}/grad.xyz')
+        e_j = stream_manager.parse_energy_gradient(f'scr/GRAD2/scr.geom{scr_index_str}/grad.xyz')
         e_total_i = e_i[0]
         e_total_j = e_j[0]
         e_grad_i = e_i[1]
         e_grad_j = e_j[1]
-        geom_data = TeraChem.parse_geometry_data(geom_file)
+        geom_data = stream_manager.parse_geometry_xyz('scr/GRAD1/geom.xyz')
         num_atoms = geom_data[0]
         ground_state_energy = geom_data[1]
         atoms = geom_data[2]
         initial_geometry = geom_data[3]
 
+        # Append to log file
+        with open(log_file, 'a') as file:
+            file.write(f'{i} {e_total_i} {e_total_j} {e_total_j - e_total_i}\n')
+
         # Step geometry
         d_obj = get_objective_gradients(e_total_i, e_total_j, e_grad_i, e_grad_j)
-        final_geometry = steepest_descent(initial_geometry, d_obj)
-
-        TeraChem.write_final_geometry(num_atoms, ground_state_energy, atoms, final_geometry, 'scr/GRAD1/geom.xyz')
-        TeraChem.write_final_geometry(num_atoms, ground_state_energy, atoms, final_geometry, 'scr/GRAD2/geom.xyz')
+        stepped_geometry = steepest_descent(initial_geometry, d_obj)
+        
+        # Write geometry
+        stream_manager.write_geometry(num_atoms, ground_state_energy, atoms, stepped_geometry, 'scr/GRAD1/geom.xyz')
+        stream_manager.write_geometry(num_atoms, ground_state_energy, atoms, stepped_geometry, 'scr/GRAD2/geom.xyz')
 
         # Run QM
         os.system('cd scr/GRAD1 && terachem start.sp > tera.out')
         os.system('cd scr/GRAD2 && terachem start.sp > tera.out')
-
-        # Append to log file
-        with open(log_file, 'a') as file:
-            file.write(f'{i} {e_total_i} {e_total_j} {e_total_j - e_total_i}\n')
         
         i += 1
 
