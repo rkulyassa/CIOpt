@@ -121,8 +121,8 @@ if __name__ == '__main__':
 
         # Parse data
         scr_index = i if i > 0 else ''
-        e_i = TeraChem.parse_energy_data(f'scr/GRAD1/scr.geom{scr_index}/grad.xyz')
-        e_j = TeraChem.parse_energy_data(f'scr/GRAD2/scr.geom{scr_index}/grad.xyz')
+        e_i = TeraChem.parse_energy_data(f'scr/GRAD1/scr.geom.{scr_index}/grad.xyz')
+        e_j = TeraChem.parse_energy_data(f'scr/GRAD2/scr.geom.{scr_index}/grad.xyz')
         e_total_i = e_i[0]
         e_total_j = e_j[0]
         e_grad_i = e_i[1]
