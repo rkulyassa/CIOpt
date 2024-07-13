@@ -115,7 +115,7 @@ if __name__ == '__main__':
     converged = False
     i = 0
 
-    while not converged or i < max_iter:
+    while not converged and i < max_iter:
         i += 1
 
         # Parse data
