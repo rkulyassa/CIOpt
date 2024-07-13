@@ -148,7 +148,7 @@ if __name__ == '__main__':
 
         # Append to log file
         with open(log_file, 'a') as file:
-            file.write(f'{i} {e_total_i} {e_total_j} {e_total_j - e_total_i}')
+            file.write(f'{i} {e_total_i} {e_total_j} {e_total_j - e_total_i}\n')
 
     if not keep_scr:
         shutil.rmtree('scr')
