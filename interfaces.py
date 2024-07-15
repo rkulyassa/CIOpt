@@ -13,11 +13,13 @@ class InterfaceIO(ABC):
         self.qm_input_file = qm_input_file
         self.init_geom_file = init_geom_file
 
-        # Static molecular info stored internally
-        self.num_atoms = 0
-        self.ground_state_energy = 0.
-        self.atomic_symbols = []
-        self.initial_geometry = None
+        # Molecular info stored internally
+        g = self.parse_geometry(init_geom_file)
+        self.num_atoms = g[0]
+        self.ground_state_energy = g[1]
+        self.atomic_symbols = g[2]
+        self.initial_geometry = g[3]
+        self.current_geometry = self.initial_geometry
 
         self.scr_path = './scr'
 
@@ -27,7 +29,6 @@ class InterfaceIO(ABC):
         
         # Initialize new scratch directory
         self.init_scr()
-
         
     @classmethod
     @abstractmethod
@@ -35,10 +36,11 @@ class InterfaceIO(ABC):
         ''' Initializes the scratch directory and necessary files. '''
         pass
     
-    @classmethod
-    def parse_geometry(self) -> list[int, float, list[str], np.ndarray[float]]:
+    @staticmethod
+    @abstractmethod
+    def parse_geometry(file: str) -> list[int, float, list[str], np.ndarray[float]]:
         '''
-        Gets geometry-relevant data from the input geometry .xyz file.
+        Gets geometry-relevant data from an input geometry .xyz file.
         
         Returns:
             list:
@@ -48,7 +50,7 @@ class InterfaceIO(ABC):
                 - (np.ndarray[float]): Initial geometry nuclear coordinates.
         '''
 
-        with open(self.init_geom_file, 'r') as f:
+        with open(file, 'r') as f:
             lines = f.readlines()
         
         num_atoms = re.sub(r'\D', '', lines[0])
@@ -67,14 +69,9 @@ class InterfaceIO(ABC):
 
         initial_geometry = np.array(geometry, dtype=object)
         
-        self.num_atoms = num_atoms
-        self.ground_state_energy = ground_state_energy
-        self.atomic_symbols = atomic_symbols
-        self.initial_geometry = initial_geometry
-        
         return [num_atoms, ground_state_energy, atomic_symbols, initial_geometry]
 
-    @staticmethod
+    @classmethod
     @abstractmethod
     def parse_energy(self) -> list[float, float, np.ndarray[float], np.ndarray[float]]:
         '''
@@ -90,6 +87,7 @@ class InterfaceIO(ABC):
         pass
 
     @classmethod
+    @abstractmethod
     def write_geometry(self, geometry: np.ndarray[float], output_file: str) -> None:
         ''' Writes the relevant geometry to a .xyz file. '''
 
@@ -118,9 +116,13 @@ class TeraChemIO(InterfaceIO):
         self.update_qm_input(f'{self.scr_path}/GRAD_J/start.sp')
         shutil.copy(self.init_geom_file, f'{self.scr_path}/GRAD_I/geom.xyz')
         shutil.copy(self.init_geom_file, f'{self.scr_path}/GRAD_J/geom.xyz')
+    
+    def parse_geometry():
+        ''' Reads the current geometry, only reads from GRAD_I since they should be the same for both states. '''
+        return super().parse_geometry('scr/GRAD_I/geom.xyz')
 
     def update_qm_input(self, file: str) -> None:
-        ''' Specifically for TeraChem, updates start.sp file to specify target state and multiplicity. '''
+        ''' Updates start.sp file to specify target state and multiplicity. '''
 
         with open(file, 'r') as f:
             lines = f.readlines()
@@ -170,6 +172,13 @@ class TeraChemIO(InterfaceIO):
             energy_gradients_j.append(coordinates)
         
         return [total_energy_i, total_energy_j, energy_gradients_i, energy_gradients_j]
+    
+    def write_geometry(self, geometry: np.ndarray[float]) -> None:
+        ''' Write to both states' directories. '''
+
+        for state in ['I', 'J']:
+            super().write_geometry(geometry, f'scr/GRAD_{state}/geom.xyz')
+        
     
     def run_qm(self):
         ''' Calls the TeraChem binary for each state. '''

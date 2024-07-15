@@ -90,12 +90,8 @@ if __name__ == '__main__':
         e_grad_i = e[2]
         e_grad_j = e[3]
 
-        # Get geometry data
-        g = interface.parse_geometry()
-        num_atoms = g[0]
-        ground_state_energy = g[1]
-        atom_symbols = g[2]
-        initial_geometry = g[3]
+        # Get current geometry
+        current_geometry = interface.parse_geometry()
 
         # Append to log file
         with open(input['log'], 'a') as file:
@@ -103,11 +99,10 @@ if __name__ == '__main__':
 
         # Step geometry
         d_obj = get_objective_gradients(e_total_i, e_total_j, e_grad_i, e_grad_j)
-        stepped_geometry = steepest_gradient_descent(initial_geometry, d_obj)
+        stepped_geometry = steepest_gradient_descent(current_geometry, d_obj)
         
         # Write geometry
-        interface.write_geometry(stepped_geometry, 'scr/GRAD_I/geom.xyz')
-        interface.write_geometry(stepped_geometry, 'scr/GRAD_J/geom.xyz')
+        interface.write_geometry(stepped_geometry)
 
         # Run QM
         interface.run_qm()
