@@ -195,6 +195,6 @@ class TeraChemIO(InterfaceIO):
         with open(log_file, 'w') as f:
             lines = []
             for i in range(iterations_count):
-                e = self.parse_energy(i)
+                e = self.parse_energy(self, i)
                 lines.append(f'{i} {e[0]} {e[1]} {e[1] - e[0]}')
             f.write('\n'.join(lines))
