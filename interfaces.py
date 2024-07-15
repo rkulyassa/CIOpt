@@ -10,14 +10,16 @@ class InterfaceIO(ABC):
         self.state_i = state_i
         self.state_j = state_j
         self.multiplicity = multiplicity
-        self.scr_path = './scr'
         self.qm_input_file = qm_input_file
         self.init_geom_file = init_geom_file
 
+        # Static molecular info stored internally
         self.num_atoms = 0
         self.ground_state_energy = 0.
         self.atomic_symbols = []
         self.initial_geometry = None
+
+        self.scr_path = './scr'
 
         # Remove existing scratch directory
         if os.path.exists(self.scr_path):
@@ -170,7 +172,7 @@ class TeraChemIO(InterfaceIO):
         return [total_energy_i, total_energy_j, energy_gradients_i, energy_gradients_j]
     
     def run_qm(self):
-        ''' Calls the TeraChem binary per each state. '''
+        ''' Calls the TeraChem binary for each state. '''
 
         os.system('cd scr/GRAD_I && terachem start.sp > tera.out')
         os.system('cd scr/GRAD_J && terachem start.sp > tera.out')

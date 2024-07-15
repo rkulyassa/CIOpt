@@ -70,8 +70,7 @@ if __name__ == '__main__':
             if data:
                 input[data[0]] = data[1]
 
-    # Select QM interface for IO stream
-    # Scratch directory also initialized here
+    # Select and initialize QM interface
     if input['qm_program'] == 'terachem':
         interface = TeraChemIO(input['state_i'], input['state_j'], input['multiplicity'], input['qm_input'], input['init_geom'])
 
@@ -80,7 +79,7 @@ if __name__ == '__main__':
     
     # TODO: convergence criteria
     converged = False
-    i = 0
+    i = 1
 
     while not converged and i <= int(input['max_iter']):
 
