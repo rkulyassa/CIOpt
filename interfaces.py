@@ -14,7 +14,7 @@ class InterfaceIO(ABC):
         self.init_geom_file = init_geom_file
 
         # Molecular info stored internally
-        g = self.parse_geometry(init_geom_file)
+        g = InterfaceIO.parse_geometry(init_geom_file)
         self.num_atoms = g[0]
         self.ground_state_energy = g[1]
         self.atomic_symbols = g[2]
