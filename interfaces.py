@@ -19,7 +19,6 @@ class InterfaceIO(ABC):
         self.ground_state_energy = g[1]
         self.atomic_symbols = g[2]
         self.initial_geometry = g[3]
-        self.current_geometry = self.initial_geometry
 
         # Remove existing scratch directory
         if os.path.exists('scr'):
