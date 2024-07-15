@@ -112,31 +112,35 @@ class TeraChemIO(InterfaceIO):
         os.makedirs(f'{self.scr_path}/GRAD_J')
         shutil.copy(self.qm_input_file, f'{self.scr_path}/GRAD_I/start.sp')
         shutil.copy(self.qm_input_file, f'{self.scr_path}/GRAD_J/start.sp')
-        self.update_qm_input(f'{self.scr_path}/GRAD_I/start.sp')
-        self.update_qm_input(f'{self.scr_path}/GRAD_J/start.sp')
+        self.update_qm_input()
         shutil.copy(self.init_geom_file, f'{self.scr_path}/GRAD_I/geom.xyz')
         shutil.copy(self.init_geom_file, f'{self.scr_path}/GRAD_J/geom.xyz')
     
-    def parse_geometry():
+    def parse_geometry(self):
         ''' Reads the current geometry, only reads from GRAD_I since they should be the same for both states. '''
         return super().parse_geometry('scr/GRAD_I/geom.xyz')
 
-    def update_qm_input(self, file: str) -> None:
+    def update_qm_input(self) -> None:
         ''' Updates start.sp file to specify target state and multiplicity. '''
 
-        with open(file, 'r') as f:
-            lines = f.readlines()
+        for state in ['I', 'J']:
+            file = f'{self.scr_path}/GRAD_{state}/start.sp'
+
+            with open(file, 'r') as f:
+                lines = f.readlines()
+
+            castarget = self.state_i if state == 'I' else self.state_j
+            
+            for i, line in enumerate(lines):
+                if line == '\n': continue
+                key = line.strip().split()[0]
+                if key == 'castarget':
+                    lines[i] = f'castarget               {castarget}               # target state for calculating gradient\n'
+                if key == 'castargetmult':
+                    lines[i] = f'castargetmult           {self.multiplicity}               # Spin multiplicity\n'
         
-        for i, line in enumerate(lines):
-            if line == '\n': continue
-            key = line.strip().split()[0]
-            if key == 'castarget':
-                lines[i] = f'castarget               {self.state_i}               # target state for calculating gradient\n'
-            if key == 'castargetmult':
-                lines[i] = f'castargetmult           {self.multiplicity}               # Spin multiplicity\n'
-        
-        with open(file, 'w') as f:
-            f.writelines(lines)
+            with open(file, 'w') as f:
+                f.writelines(lines)
     
     def parse_energy(self, iteration: int):
         ''' Requires iteration arg if keeping scr.geom folders. Reads state I and J separately. '''

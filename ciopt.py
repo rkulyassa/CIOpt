@@ -93,6 +93,8 @@ if __name__ == '__main__':
         # Get current geometry
         current_geometry = interface.parse_geometry()
 
+        print(current_geometry)
+
         # Append to log file
         with open(input['log'], 'a') as file:
             file.write(f'{i} {e_total_i} {e_total_j} {e_total_j - e_total_i}\n')
