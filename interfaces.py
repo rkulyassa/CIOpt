@@ -21,11 +21,9 @@ class InterfaceIO(ABC):
         self.initial_geometry = g[3]
         self.current_geometry = self.initial_geometry
 
-        self.scr_path = './scr'
-
         # Remove existing scratch directory
-        if os.path.exists(self.scr_path):
-            shutil.rmtree(self.scr_path)
+        if os.path.exists('scr'):
+            shutil.rmtree('scr')
         
         # Initialize new scratch directory
         self.init_scr()
@@ -37,7 +35,6 @@ class InterfaceIO(ABC):
         pass
     
     @staticmethod
-    @abstractmethod
     def parse_geometry(file: str) -> list[int, float, list[str], np.ndarray[float]]:
         '''
         Gets geometry-relevant data from an input geometry .xyz file.
@@ -87,7 +84,6 @@ class InterfaceIO(ABC):
         pass
 
     @staticmethod
-    @abstractmethod
     def write_geometry(num_atoms: int, ground_state_energy: float, atomic_symbols: list[str], geometry: np.ndarray[float], output_file: str) -> None:
         ''' Writes the relevant geometry to a .xyz file. '''
 
@@ -107,24 +103,24 @@ class InterfaceIO(ABC):
 class TeraChemIO(InterfaceIO):
 
     def init_scr(self):
-        os.makedirs(self.scr_path)
-        os.makedirs(f'{self.scr_path}/GRAD_I')
-        os.makedirs(f'{self.scr_path}/GRAD_J')
-        shutil.copy(self.qm_input_file, f'{self.scr_path}/GRAD_I/start.sp')
-        shutil.copy(self.qm_input_file, f'{self.scr_path}/GRAD_J/start.sp')
+        os.makedirs('scr')
+        os.makedirs('scr/GRAD_I')
+        os.makedirs('scr/GRAD_J')
+        shutil.copy(self.qm_input_file, 'scr/GRAD_I/start.sp')
+        shutil.copy(self.qm_input_file, 'scr/GRAD_J/start.sp')
         self.update_qm_input()
-        shutil.copy(self.init_geom_file, f'{self.scr_path}/GRAD_I/geom.xyz')
-        shutil.copy(self.init_geom_file, f'{self.scr_path}/GRAD_J/geom.xyz')
+        shutil.copy(self.init_geom_file, f'scr/GRAD_I/geom.xyz')
+        shutil.copy(self.init_geom_file, f'scr/GRAD_J/geom.xyz')
     
     def parse_geometry(self):
-        ''' Reads the current geometry, only reads from GRAD_I since they should be the same for both states. '''
+        ''' Wrapper method; reads the current geometry, only reads from GRAD_I since they should be the same for both states. '''
         return super().parse_geometry('scr/GRAD_I/geom.xyz')
 
     def update_qm_input(self) -> None:
         ''' Updates start.sp file to specify target state and multiplicity. '''
 
         for state in ['I', 'J']:
-            file = f'{self.scr_path}/GRAD_{state}/start.sp'
+            file = f'scr/GRAD_{state}/start.sp'
 
             with open(file, 'r') as f:
                 lines = f.readlines()
@@ -143,7 +139,7 @@ class TeraChemIO(InterfaceIO):
                 f.writelines(lines)
     
     def parse_energy(self, iteration: int):
-        ''' Requires iteration arg if keeping scr.geom folders. Reads state I and J separately. '''
+        ''' Read energy data of states I and J separately. Requires iteration arg since we're keeping scr.geom folders. '''
 
         scr_index_str = f'.{iteration}' if iteration > 0 else ''
 
@@ -178,7 +174,7 @@ class TeraChemIO(InterfaceIO):
         return [total_energy_i, total_energy_j, energy_gradients_i, energy_gradients_j]
     
     def write_geometry(self, geometry: np.ndarray[float]) -> None:
-        ''' Write to both states' directories. '''
+        ''' Wrapper method; write geometry to both states' directories. '''
 
         for state in ['I', 'J']:
             super().write_geometry(self.num_atoms, self.ground_state_energy, self.atomic_symbols, geometry, f'scr/GRAD_{state}/geom.xyz')
@@ -188,3 +184,17 @@ class TeraChemIO(InterfaceIO):
 
         os.system('cd scr/GRAD_I && terachem start.sp > tera.out')
         os.system('cd scr/GRAD_J && terachem start.sp > tera.out')
+    
+    @classmethod
+    def generate_log(self, iterations_count: int, log_file: str) -> None:
+        '''
+        Generates log file containing relevant data from each iteration.
+        For TeraChem, this is possible as a scr.geom folder is created each iteration. Other QM programs may be different.
+        '''
+
+        with open(log_file, 'w') as f:
+            lines = []
+            for i in range(iterations_count):
+                e = self.parse_energy(i)
+                lines.append(f'{i} {e[0]} {e[1]} {e[1] - e[0]}')
+            f.write('\n'.join(lines))

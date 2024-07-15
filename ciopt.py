@@ -93,10 +93,6 @@ if __name__ == '__main__':
         # Get current geometry
         current_geometry = interface.parse_geometry()[3]
 
-        # Append to log file
-        with open(input['log'], 'a') as file:
-            file.write(f'{i} {e_total_i} {e_total_j} {e_total_j - e_total_i}\n')
-
         # Step geometry
         d_obj = get_objective_gradients(e_total_i, e_total_j, e_grad_i, e_grad_j)
         stepped_geometry = steepest_gradient_descent(current_geometry, d_obj)
@@ -109,7 +105,9 @@ if __name__ == '__main__':
         
         i += 1
 
-    if not input['keep_scr'].lower() == 'yes':
+    interface.generate_log(i, input['log'])
+
+    if input['keep_scr'].lower() == 'no':
         shutil.rmtree('scr')
 
 
