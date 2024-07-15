@@ -91,9 +91,7 @@ if __name__ == '__main__':
         e_grad_j = e[3]
 
         # Get current geometry
-        current_geometry = interface.parse_geometry()
-
-        print(current_geometry)
+        current_geometry = interface.parse_geometry()[3]
 
         # Append to log file
         with open(input['log'], 'a') as file:

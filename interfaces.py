@@ -86,14 +86,14 @@ class InterfaceIO(ABC):
         '''
         pass
 
-    @classmethod
+    @staticmethod
     @abstractmethod
-    def write_geometry(self, geometry: np.ndarray[float], output_file: str) -> None:
+    def write_geometry(num_atoms: int, ground_state_energy: float, atomic_symbols: list[str], geometry: np.ndarray[float], output_file: str) -> None:
         ''' Writes the relevant geometry to a .xyz file. '''
 
         with open(output_file, 'w') as file:
-            lines = [self.num_atoms, self.ground_state_energy]
-            for i, atom in enumerate(self.atomic_symbols):
+            lines = [num_atoms, ground_state_energy]
+            for i, atom in enumerate(atomic_symbols):
                 coordinates = ' '.join([f'{c:.8f}' for c in geometry[i]])
                 lines.append(f'{atom} {coordinates}')
             file.write('\n'.join(lines))
@@ -181,8 +181,7 @@ class TeraChemIO(InterfaceIO):
         ''' Write to both states' directories. '''
 
         for state in ['I', 'J']:
-            super().write_geometry(geometry, f'scr/GRAD_{state}/geom.xyz')
-        
+            super().write_geometry(self.num_atoms, self.ground_state_energy, self.atomic_symbols, geometry, f'scr/GRAD_{state}/geom.xyz')
     
     def run_qm(self):
         ''' Calls the TeraChem binary for each state. '''
