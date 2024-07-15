@@ -1,13 +1,13 @@
-interface       terachem
-template        template.sp
+qm_program      terachem
+qm_input        sample/terachem_template.sp
 state_i         0
 state_j         1
 multiplicity    1
-init_geom       init_geom.xyz
-out_geom        geom.xyz
+init_geom       sample/init_geom.xyz
+out_geom        final_geom.xyz
 log             log.out
 max_iter        3
-keep_scr        yes
+keep_scr        no
 
 method          levine
 alpha           0.02

@@ -1,77 +1,61 @@
-import os
 import shutil
 import numpy as np
 from interfaces import TeraChemIO
 
-# User-defined constants:
-ALPHA = 0.02 # Hartree
-SIGMA = 3.5 # Hartree
-GAMMA = 0.01 # Step size
-STEP_TOL = 0.000001 # Hartree
-GRAD_TOL = 0.0005 # Hartree/Bohr
+DEFAULT_CONSTANTS = {
+    'ALPHA': 0.02,          # Hartree
+    'SIGMA': 3.5,           # Hartree
+    'GAMMA': 0.01,          # Step size
+    'STEP_TOL': 0.000001,   # Hartree
+    'GRAD_TOL': 0.0005      # Hartree/Bohr
+}
 
-def get_objective(e_i: float, e_j: float, alpha: float = ALPHA, sigma: float = SIGMA) -> float:
-    ''' Based on Levine pg. 407 eq. 3-6. '''
-
-    d_e = e_i - e_j
-    pen = (d_e * d_e) / (d_e + alpha)
-    e_avg = (e_i + e_j) / 2
-    obj = e_avg + sigma * pen
-    return obj
-
-def get_objective_gradients(e_i: float, e_j: float, d_e_i: np.ndarray, d_e_j: np.ndarray, alpha: float = ALPHA, sigma: float = SIGMA) -> np.ndarray:
-    """
+def get_objective_gradients(e_i: float, e_j: float, d_e_i: np.ndarray, d_e_j: np.ndarray, alpha: float = DEFAULT_CONSTANTS['ALPHA'], sigma: float = DEFAULT_CONSTANTS['SIGMA']) -> np.ndarray:
+    '''
     Based on Levine pg. 407 eq. 7.
-
+    
     Args:
-        e_i (float): The total energy of state I.
-        e_j (float): The total energy of state J.
-        d_e_i (np.ndarray): The matrix (N,3) of energy gradients for each atom in state I.
-        d_e_j (np.ndarray): The matrix (N,3) of energy gradients for each atom in state J.
+        e_i (float): Total energy of state I.
+        e_j (float): Total energy of state J.
+        d_e_i (np.ndarray): Matrix (N,3) of energy gradients for each atom in state I.
+        d_e_j (np.ndarray): Matrix (N,3) of energy gradients for each atom in state J.
     
     Returns:
-        np.ndarray: The matrix (N,3) of objective gradients for each atom.
-    """
+        np.ndarray: Matrix (N,3) of objective gradients for each atom.
+    '''
 
     # Merge energy gradient matrices into one matrix (N,2,3). N atoms, 2 states, 3 dimensions
     d_e = np.stack((d_e_i, d_e_j), axis=1)
 
-    # Calculate energy difference
+    # Energy difference
     e_diff = e_i - e_j
 
-    # Calculate energy derivative differences
+    # Energy derivative differences
     d_e_diff = d_e[:, 0, :] - d_e[:, 1, :]
-    # print(d_e_diff)
 
-    # Calculate energy derivative averages
+    # Energy derivative averages
     d_e_avg = np.mean(d_e, axis=1)
     
-    # Get penalty fn. gradients
+    # Penalty fn. gradient matrix
     d_pen = ((e_diff * e_diff + 2 * alpha * e_diff) / ((e_diff + alpha) * (e_diff + alpha))) * d_e_diff
 
-    # Get objective fn. gradients
+    # Objective fn. gradient matrix
     d_obj = d_e_avg + sigma * d_pen
-
-    # print('Energy difference:', e_diff)
-    # print('Energy derivative differences:', d_e_diff)
-    # print('Energy derivative averages:', d_e_avg)
-    # print('Penalty gradient:', d_pen)
-    # print('Objective gradient:', d_obj)
 
     return d_obj
 
-def steepest_descent(geometry: np.ndarray, gradient: np.ndarray, gamma: float = GAMMA) -> np.ndarray:
-    """
+def steepest_gradient_descent(geometry: np.ndarray, gradient: np.ndarray, gamma: float = DEFAULT_CONSTANTS['GAMMA']) -> np.ndarray:
+    '''
     Steps a geometric system based on steepest descent gradient method.
 
     Args:
-        geometry (np.ndarray): The matrix (N,3) of nuclear coordinates.
-        gradient (np.ndarray): The matrix (N,3) of energy gradients.
-        gamma (float): The step size.
+        geometry (np.ndarray): Matrix (N,3) of nuclear coordinates.
+        gradient (np.ndarray): Matrix (N,3) of gradients.
+        gamma (float): Step size.
 
     Returns:
-        np.ndarray: The resultant geometry; matrix (N,3) of nuclear coordinates.
-    """
+        np.ndarray: Resultant geometry; matrix (N,3) of nuclear coordinates.
+    '''
 
     return geometry + gamma * gradient
 
@@ -86,75 +70,52 @@ if __name__ == '__main__':
             if data:
                 input[data[0]] = data[1]
 
-    interface = input['interface']
-    template_file = input['template']
-    state_i = input['state_i']
-    state_j = input['state_j']
-    multiplicity = input['multiplicity']
-    geom_file = input['init_geom']
-    out_file = input['out_geom']
-    log_file = input['log']
-    max_iter: int = int(input['max_iter'])
-    keep_scr: bool = input['keep_scr'].lower() == 'yes'
-
-    if interface == 'terachem':
-        stream_manager = TeraChemIO
-
-    # Setup scratch dir + files
-    if not os.path.exists('scr'):
-        os.makedirs('scr')
-        os.makedirs('scr/GRAD1')
-        os.makedirs('scr/GRAD2')
-    shutil.copy(template_file, 'scr/GRAD1/start.sp')
-    shutil.copy(template_file, 'scr/GRAD2/start.sp')
-    stream_manager.update_start_file('scr/GRAD1/start.sp', state_i, multiplicity)
-    stream_manager.update_start_file('scr/GRAD2/start.sp', state_j, multiplicity)
-    shutil.copy(geom_file, 'scr/GRAD1/geom.xyz')
-    shutil.copy(geom_file, 'scr/GRAD2/geom.xyz')
+    # Select QM interface for IO stream
+    # Scratch directory also initialized here
+    if input['qm_program'] == 'terachem':
+        interface = TeraChemIO(input['state_i'], input['state_j'], input['multiplicity'], input['qm_input'], input['init_geom'])
 
     # Initial QM calculation
-    os.system('cd scr/GRAD1 && terachem start.sp > tera.out')
-    os.system('cd scr/GRAD2 && terachem start.sp > tera.out')
+    interface.run_qm()
     
     # TODO: convergence criteria
     converged = False
     i = 0
 
-    while not converged and i < max_iter:
+    while not converged and i <= int(input['max_iter']):
 
-        # Parse data
-        scr_index_str = f'.{i}' if i > 0 else ''
-        e_i = stream_manager.parse_energy_gradient(f'scr/GRAD1/scr.geom{scr_index_str}/grad.xyz')
-        e_j = stream_manager.parse_energy_gradient(f'scr/GRAD2/scr.geom{scr_index_str}/grad.xyz')
-        e_total_i = e_i[0]
-        e_total_j = e_j[0]
-        e_grad_i = e_i[1]
-        e_grad_j = e_j[1]
-        geom_data = stream_manager.parse_geometry_xyz('scr/GRAD1/geom.xyz')
-        num_atoms = geom_data[0]
-        ground_state_energy = geom_data[1]
-        atoms = geom_data[2]
-        initial_geometry = geom_data[3]
+        # Get energy data
+        e = interface.parse_energy(i)
+        e_total_i = e[0]
+        e_total_j = e[1]
+        e_grad_i = e[2]
+        e_grad_j = e[3]
+
+        # Get geometry data
+        g = interface.parse_geometry()
+        num_atoms = g[0]
+        ground_state_energy = g[1]
+        atom_symbols = g[2]
+        initial_geometry = g[3]
 
         # Append to log file
-        with open(log_file, 'a') as file:
+        with open(input['log'], 'a') as file:
             file.write(f'{i} {e_total_i} {e_total_j} {e_total_j - e_total_i}\n')
 
         # Step geometry
         d_obj = get_objective_gradients(e_total_i, e_total_j, e_grad_i, e_grad_j)
-        stepped_geometry = steepest_descent(initial_geometry, d_obj)
+        stepped_geometry = steepest_gradient_descent(initial_geometry, d_obj)
         
         # Write geometry
-        stream_manager.write_geometry(num_atoms, ground_state_energy, atoms, stepped_geometry, 'scr/GRAD1/geom.xyz')
-        stream_manager.write_geometry(num_atoms, ground_state_energy, atoms, stepped_geometry, 'scr/GRAD2/geom.xyz')
+        interface.write_geometry(stepped_geometry, 'scr/GRAD_I/geom.xyz')
+        interface.write_geometry(stepped_geometry, 'scr/GRAD_J/geom.xyz')
 
         # Run QM
-        os.system('cd scr/GRAD1 && terachem start.sp > tera.out')
-        os.system('cd scr/GRAD2 && terachem start.sp > tera.out')
+        interface.run_qm()
         
         i += 1
 
-    if not keep_scr:
+    if not input['keep_scr'].lower() == 'yes':
         shutil.rmtree('scr')
 
 
