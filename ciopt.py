@@ -79,7 +79,7 @@ if __name__ == '__main__':
     
     # TODO: convergence criteria
     converged = False
-    i = 1
+    i = 0
 
     while not converged and i <= int(input['max_iter']):
 
