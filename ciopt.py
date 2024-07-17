@@ -90,6 +90,9 @@ if __name__ == '__main__':
         e_grad_i = e[2]
         e_grad_j = e[3]
 
+        with open(input['log'], 'a') as f:
+            f.write(f'{i} {e_total_i} {e_total_j} {e_total_j - e_total_i}')
+
         # Get current geometry
         current_geometry = interface.parse_geometry()[3]
 
@@ -105,12 +108,10 @@ if __name__ == '__main__':
         
         i += 1
 
-    interface.generate_log(i, input['log'])
+    # interface.generate_log(i, input['log'])
 
     if input['keep_scr'].lower() == 'no':
         shutil.rmtree('scr')
-
-
 
 
 

@@ -7,7 +7,7 @@ init_geom       sample/init_geom.xyz
 out_geom        final_geom.xyz
 log             log.out
 max_iter        3
-keep_scr        no
+keep_scr        yes
 
 method          levine
 alpha           0.02

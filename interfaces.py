@@ -184,16 +184,16 @@ class TeraChemIO(InterfaceIO):
         os.system('cd scr/GRAD_I && terachem start.sp > tera.out')
         os.system('cd scr/GRAD_J && terachem start.sp > tera.out')
     
-    @classmethod
-    def generate_log(self, iterations_count: int, log_file: str) -> None:
-        '''
-        Generates log file containing relevant data from each iteration.
-        For TeraChem, this is possible as a scr.geom folder is created each iteration. Other QM programs may be different.
-        '''
+    # @classmethod
+    # def generate_log(self, iterations_count: int, log_file: str) -> None:
+    #     '''
+    #     Generates log file containing relevant data from each iteration.
+    #     For TeraChem, this is possible as a scr.geom folder is created each iteration. Other QM programs may be different.
+    #     '''
 
-        with open(log_file, 'w') as f:
-            lines = []
-            for i in range(iterations_count):
-                e = self.parse_energy(self, i)
-                lines.append(f'{i} {e[0]} {e[1]} {e[1] - e[0]}')
-            f.write('\n'.join(lines))
+    #     with open(log_file, 'w') as f:
+    #         lines = []
+    #         for i in range(iterations_count):
+    #             e = self.parse_energy(self, i)
+    #             lines.append(f'{i} {e[0]} {e[1]} {e[1] - e[0]}')
+    #         f.write('\n'.join(lines))
