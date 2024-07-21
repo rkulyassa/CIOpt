@@ -10,7 +10,7 @@ DEFAULT_CONSTANTS = {
     'GRAD_TOL': 0.0005      # Hartree/Bohr
 }
 
-def get_objective_gradient_data(e_i: float, e_j: float, d_e_i: np.ndarray, d_e_j: np.ndarray, alpha: float = DEFAULT_CONSTANTS['ALPHA'], sigma: float = DEFAULT_CONSTANTS['SIGMA']) -> list[np.ndarray, np.ndarray]:
+def levine_method(e_i: float, e_j: float, d_e_i: np.ndarray, d_e_j: np.ndarray, alpha: float = DEFAULT_CONSTANTS['ALPHA'], sigma: float = DEFAULT_CONSTANTS['SIGMA']) -> list[np.ndarray, np.ndarray]:
     '''
     Based on Levine pg. 407 eq. 7.
     
@@ -21,7 +21,10 @@ def get_objective_gradient_data(e_i: float, e_j: float, d_e_i: np.ndarray, d_e_j
         d_e_j (np.ndarray): Matrix (N,3) of energy gradients for each atom in state J.
     
     Returns:
+        float: The value of the objective fn.
+        float: The value of the penalty fn.
         np.ndarray: Matrix (N,3) of objective gradients for each atom.
+        np.ndarray: Matrix (N,3) of penalty gradients for each atom.
     '''
 
     # Merge energy gradient matrices into one matrix (N,2,3). N atoms, 2 states, 3 dimensions
@@ -42,7 +45,11 @@ def get_objective_gradient_data(e_i: float, e_j: float, d_e_i: np.ndarray, d_e_j
     # Objective fn. gradient matrix
     d_obj = d_e_avg + sigma * d_pen
 
-    return [d_obj, d_pen]
+    # Evaluate penalty & objective fns.
+    pen = (e_diff * e_diff) / (e_diff + alpha)
+    obj = (e_i + e_j)/2 + sigma * pen
+
+    return [obj, pen, d_obj, d_pen]
 
 def steepest_gradient_descent(geometry: np.ndarray, gradient: np.ndarray, gamma: float = DEFAULT_CONSTANTS['GAMMA']) -> np.ndarray:
     '''
@@ -99,7 +106,7 @@ if __name__ == '__main__':
     
     # Runtime vars
     converged = False
-    prior_d_obj = None # keeps track of the objective in the previous iteration, used in convergence criteria
+    prior_obj = None # keeps track of the objective in the previous iteration, used in convergence criteria
     i = 0
 
     while not converged and i <= int(input['max_iter']):
@@ -118,18 +125,20 @@ if __name__ == '__main__':
         current_geometry = interface.parse_geometry()[3]
 
         # Calculate objective and penalty gradients
-        obj_data = get_objective_gradient_data(e_total_i, e_total_j, e_grad_i, e_grad_j, float(input['alpha']), float(input['sigma']))
-        d_obj = obj_data[0]
-        d_pen = obj_data[1]
+        levine_data = levine_method(e_total_i, e_total_j, e_grad_i, e_grad_j, float(input['alpha']), float(input['sigma']))
+        obj = levine_data[0]
+        pen = levine_data[1]
+        d_obj = levine_data[2]
+        d_pen = levine_data[3]
 
         # Check convergence criteria
         if i > 0:
-            if check_convergence(prior_d_obj, d_obj, d_obj, d_pen, float(input['step_tol']), float(input['sigma'])):
+            if check_convergence(prior_obj, obj, d_obj, d_pen, float(input['step_tol']), float(input['sigma'])):
                 converged = True
                 print(f'Converged after {i} iterations.')
                 break
 
-        prior_d_obj = d_obj
+        prior_obj = obj
         stepped_geometry = steepest_gradient_descent(current_geometry, d_obj)
         
         # Write geometry
