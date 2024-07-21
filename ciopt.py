@@ -51,7 +51,7 @@ def levine_method(e_i: float, e_j: float, d_e_i: np.ndarray, d_e_j: np.ndarray, 
 
     return [obj, pen, d_obj, d_pen]
 
-def steepest_gradient_descent(geometry: np.ndarray, gradient: np.ndarray, gamma: float = DEFAULT_CONSTANTS['GAMMA']) -> np.ndarray:
+def steepest_gradient_descent(geometry: np.ndarray[float], gradient: np.ndarray[float], gamma: float = DEFAULT_CONSTANTS['GAMMA']) -> np.ndarray:
     '''
     Steps a geometric system based on steepest descent gradient method.
 
@@ -66,7 +66,7 @@ def steepest_gradient_descent(geometry: np.ndarray, gradient: np.ndarray, gamma:
 
     return geometry + gamma * gradient
 
-def check_convergence(prior_obj: np.ndarray, obj: np.ndarray, d_obj: np.ndarray, d_pen: np.ndarray, sigma: float = DEFAULT_CONSTANTS['SIGMA'], step_tol: float = DEFAULT_CONSTANTS['STEP_TOL'], grad_tol: float = DEFAULT_CONSTANTS['GRAD_TOL']) -> bool:
+def check_convergence(prior_obj: np.ndarray[float], obj: np.ndarray[float], d_obj: np.ndarray[float], d_pen: np.ndarray, sigma: float = DEFAULT_CONSTANTS['SIGMA'], step_tol: float = DEFAULT_CONSTANTS['STEP_TOL'], grad_tol: float = DEFAULT_CONSTANTS['GRAD_TOL']) -> bool:
     c1 = c2 = c3 = False
 
     # Change in objective

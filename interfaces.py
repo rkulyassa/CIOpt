@@ -63,7 +63,7 @@ class InterfaceIO(ABC):
             coordinates = [float(re.sub(r'\n', '', c)) for c in data[1:]]
             geometry.append(coordinates)
 
-        initial_geometry = np.array(geometry, dtype=object)
+        initial_geometry = np.array(geometry, dtype=float)
         
         return [num_atoms, ground_state_energy, atomic_symbols, initial_geometry]
 
@@ -173,6 +173,9 @@ class TeraChemIO(InterfaceIO):
         
         print(f'Got: {total_energy_i} {total_energy_j}')
         
+        energy_gradients_i = np.array(energy_gradients_i, dtype=float)
+        energy_gradients_j = np.array(energy_gradients_j, dtype=float)
+
         return [total_energy_i, total_energy_j, energy_gradients_i, energy_gradients_j]
     
     def write_geometry(self, geometry: np.ndarray[float]) -> None:
