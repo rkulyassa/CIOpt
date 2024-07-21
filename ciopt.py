@@ -118,12 +118,12 @@ if __name__ == '__main__':
         current_geometry = interface.parse_geometry()[3]
 
         # Calculate objective and penalty gradients
-        obj_data = get_objective_gradient_data(e_total_i, e_total_j, e_grad_i, e_grad_j, input['alpha'], input['sigma'])
+        obj_data = get_objective_gradient_data(e_total_i, e_total_j, e_grad_i, e_grad_j, float(input['alpha']), float(input['sigma']))
         d_obj = obj_data[0]
         d_pen = obj_data[1]
 
         # Check convergence criteria
-        if check_convergence(prior_d_obj, d_obj, d_obj, d_pen, input['step_tol'], input['sigma']):
+        if check_convergence(prior_d_obj, d_obj, d_obj, d_pen, float(input['step_tol']), float(input['sigma'])):
             converged = True
             print(f'Converged after {i} iterations.')
             break
