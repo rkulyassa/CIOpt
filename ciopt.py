@@ -123,10 +123,11 @@ if __name__ == '__main__':
         d_pen = obj_data[1]
 
         # Check convergence criteria
-        if check_convergence(prior_d_obj, d_obj, d_obj, d_pen, float(input['step_tol']), float(input['sigma'])):
-            converged = True
-            print(f'Converged after {i} iterations.')
-            break
+        if i > 0:
+            if check_convergence(prior_d_obj, d_obj, d_obj, d_pen, float(input['step_tol']), float(input['sigma'])):
+                converged = True
+                print(f'Converged after {i} iterations.')
+                break
 
         prior_d_obj = d_obj
         stepped_geometry = steepest_gradient_descent(current_geometry, d_obj)
