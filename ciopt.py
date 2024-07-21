@@ -10,7 +10,7 @@ DEFAULT_CONSTANTS = {
     'GRAD_TOL': 0.0005      # Hartree/Bohr
 }
 
-def get_objective_gradients(e_i: float, e_j: float, d_e_i: np.ndarray, d_e_j: np.ndarray, alpha: float = DEFAULT_CONSTANTS['ALPHA'], sigma: float = DEFAULT_CONSTANTS['SIGMA']) -> np.ndarray:
+def get_objective_gradient_data(e_i: float, e_j: float, d_e_i: np.ndarray, d_e_j: np.ndarray, alpha: float = DEFAULT_CONSTANTS['ALPHA'], sigma: float = DEFAULT_CONSTANTS['SIGMA']) -> list[np.ndarray, np.ndarray]:
     '''
     Based on Levine pg. 407 eq. 7.
     
@@ -42,7 +42,7 @@ def get_objective_gradients(e_i: float, e_j: float, d_e_i: np.ndarray, d_e_j: np
     # Objective fn. gradient matrix
     d_obj = d_e_avg + sigma * d_pen
 
-    return d_obj
+    return [d_obj, d_pen]
 
 def steepest_gradient_descent(geometry: np.ndarray, gradient: np.ndarray, gamma: float = DEFAULT_CONSTANTS['GAMMA']) -> np.ndarray:
     '''
@@ -58,6 +58,26 @@ def steepest_gradient_descent(geometry: np.ndarray, gradient: np.ndarray, gamma:
     '''
 
     return geometry + gamma * gradient
+
+def check_convergence(prior_obj: np.ndarray, obj: np.ndarray, d_obj: np.ndarray, d_pen: np.ndarray, sigma: float = DEFAULT_CONSTANTS['SIGMA'], step_tol: float = DEFAULT_CONSTANTS['STEP_TOL'], grad_tol: float = DEFAULT_CONSTANTS['GRAD_TOL']) -> bool:
+    c1 = c2 = c3 = False
+
+    # Change in objective
+    c1 = np.abs(prior_obj - obj) <= step_tol
+
+    # Unit vector along penalty
+    u = d_pen / np.linalg.norm(d_pen)
+
+    # Component of objective parallel to penalty direction
+    d_obj_parallel = (1 / sigma) * np.dot(d_obj, u)
+    c2 = np.abs(d_obj_parallel) <= grad_tol
+
+    # Component of objective perpendicular to penalty direction
+    d_obj_perpendicular = d_obj - d_obj_parallel * u
+    c3 = np.linalg.norm(d_obj_perpendicular) <= grad_tol
+
+    return c1 and c2 and c3
+
 
 if __name__ == '__main__':
 
@@ -77,8 +97,9 @@ if __name__ == '__main__':
     # Initial QM calculation
     interface.run_qm()
     
-    # TODO: convergence criteria
+    # Runtime vars
     converged = False
+    prior_d_obj = None # keeps track of the objective in the previous iteration, used in convergence criteria
     i = 0
 
     while not converged and i <= int(input['max_iter']):
@@ -91,13 +112,22 @@ if __name__ == '__main__':
         e_grad_j = e[3]
 
         with open(input['log'], 'a') as f:
-            f.write(f'{i} {e_total_i} {e_total_j} {e_total_j - e_total_i}')
+            f.write(f'{i} {e_total_i} {e_total_j} {e_total_j - e_total_i}\n')
 
         # Get current geometry
         current_geometry = interface.parse_geometry()[3]
 
-        # Step geometry
-        d_obj = get_objective_gradients(e_total_i, e_total_j, e_grad_i, e_grad_j)
+        # Calculate objective and penalty gradients
+        obj_data = get_objective_gradient_data(e_total_i, e_total_j, e_grad_i, e_grad_j, input['alpha'], input['sigma'])
+        d_obj = obj_data[0]
+        d_pen = obj_data[1]
+
+        # Check convergence criteria
+        if not check_convergence(prior_d_obj, d_obj, d_obj, d_pen, input['step_tol'], input['sigma']):
+            converged = True
+            break
+
+        prior_d_obj = d_obj
         stepped_geometry = steepest_gradient_descent(current_geometry, d_obj)
         
         # Write geometry
@@ -108,22 +138,8 @@ if __name__ == '__main__':
         
         i += 1
 
-    # interface.generate_log(i, input['log'])
+    if converged:
+        print(f'Converged after {i} iterations.')
 
     if input['keep_scr'].lower() == 'no':
         shutil.rmtree('scr')
-
-
-
-    # # Convergence criteria 1 - step tolerance
-    # obj = get_objective(e_i, e_j)
-    # # store last objective in ./temp.txt, parse from there and compare here
-    # prev_obj = 0
-    # c1 = np.abs(obj - prev_obj) > STEP_TOL
-
-    # Convergence criteria 2 - parallel gradient component tolerance
-    # get unit vector of penalty, dot with d_obj to get c2
-    #c2 = (1 / SIGMA) * np.dot(d_obj, u) <= GRAD_TOL
-
-    # Convergence criteria 3 - perpendicular gradient component tolerance
-    # c3 = np.abs(d_obj - (d_obj * u))

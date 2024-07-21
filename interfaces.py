@@ -141,6 +141,7 @@ class TeraChemIO(InterfaceIO):
         ''' Read energy data of states I and J separately. Requires iteration arg since we're keeping scr.geom folders. '''
 
         scr_index_str = f'.{iteration}' if iteration > 0 else ''
+        print(f'parsing energy: {iteration}, {scr_index_str}, scr/GRAD_I/scr.geom{scr_index_str}/grad.xyz')
 
         # Read state I
         with open(f'scr/GRAD_I/scr.geom{scr_index_str}/grad.xyz', 'r') as f:
@@ -170,6 +171,8 @@ class TeraChemIO(InterfaceIO):
             if not coordinates: continue
             energy_gradients_j.append(coordinates)
         
+        print(f'Got: {total_energy_i} {total_energy_j}')
+        
         return [total_energy_i, total_energy_j, energy_gradients_i, energy_gradients_j]
     
     def write_geometry(self, geometry: np.ndarray[float]) -> None:
@@ -183,17 +186,3 @@ class TeraChemIO(InterfaceIO):
 
         os.system('cd scr/GRAD_I && terachem start.sp > tera.out')
         os.system('cd scr/GRAD_J && terachem start.sp > tera.out')
-    
-    # @classmethod
-    # def generate_log(self, iterations_count: int, log_file: str) -> None:
-    #     '''
-    #     Generates log file containing relevant data from each iteration.
-    #     For TeraChem, this is possible as a scr.geom folder is created each iteration. Other QM programs may be different.
-    #     '''
-
-    #     with open(log_file, 'w') as f:
-    #         lines = []
-    #         for i in range(iterations_count):
-    #             e = self.parse_energy(self, i)
-    #             lines.append(f'{i} {e[0]} {e[1]} {e[1] - e[0]}')
-    #         f.write('\n'.join(lines))
