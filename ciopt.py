@@ -123,8 +123,9 @@ if __name__ == '__main__':
         d_pen = obj_data[1]
 
         # Check convergence criteria
-        if not check_convergence(prior_d_obj, d_obj, d_obj, d_pen, input['step_tol'], input['sigma']):
+        if check_convergence(prior_d_obj, d_obj, d_obj, d_pen, input['step_tol'], input['sigma']):
             converged = True
+            print(f'Converged after {i} iterations.')
             break
 
         prior_d_obj = d_obj
@@ -137,9 +138,6 @@ if __name__ == '__main__':
         interface.run_qm()
         
         i += 1
-
-    if converged:
-        print(f'Converged after {i} iterations.')
 
     if input['keep_scr'].lower() == 'no':
         shutil.rmtree('scr')
