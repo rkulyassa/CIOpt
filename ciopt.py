@@ -10,21 +10,21 @@ DEFAULT_CONSTANTS = {
     'GRAD_TOL': 0.0005      # Hartree/Bohr
 }
 
-def levine_method(e_i: float, e_j: float, d_e_i: np.ndarray, d_e_j: np.ndarray, alpha: float = DEFAULT_CONSTANTS['ALPHA'], sigma: float = DEFAULT_CONSTANTS['SIGMA']) -> list[np.ndarray, np.ndarray]:
+def levine_method(e_i: float, e_j: float, d_e_i: np.ndarray[float], d_e_j: np.ndarray[float], alpha: float = DEFAULT_CONSTANTS['ALPHA'], sigma: float = DEFAULT_CONSTANTS['SIGMA']) -> list[np.ndarray[float], np.ndarray[float]]:
     '''
     Based on Levine pg. 407 eq. 7.
     
     Args:
         e_i (float): Total energy of state I.
         e_j (float): Total energy of state J.
-        d_e_i (np.ndarray): Matrix (N,3) of energy gradients for each atom in state I.
-        d_e_j (np.ndarray): Matrix (N,3) of energy gradients for each atom in state J.
+        d_e_i (np.ndarray[float]): Matrix (N,3) of energy gradients for each atom in state I.
+        d_e_j (np.ndarray[float]): Matrix (N,3) of energy gradients for each atom in state J.
     
     Returns:
         float: The value of the objective fn.
         float: The value of the penalty fn.
-        np.ndarray: Matrix (N,3) of objective gradients for each atom.
-        np.ndarray: Matrix (N,3) of penalty gradients for each atom.
+        np.ndarray[float]: Matrix (N,3) of objective gradients for each atom.
+        np.ndarray[float]: Matrix (N,3) of penalty gradients for each atom.
     '''
 
     # Merge energy gradient matrices into one matrix (N,2,3). N atoms, 2 states, 3 dimensions
@@ -51,22 +51,22 @@ def levine_method(e_i: float, e_j: float, d_e_i: np.ndarray, d_e_j: np.ndarray, 
 
     return [obj, pen, d_obj, d_pen]
 
-def steepest_gradient_descent(geometry: np.ndarray[float], gradient: np.ndarray[float], gamma: float = DEFAULT_CONSTANTS['GAMMA']) -> np.ndarray:
+def steepest_gradient_descent(geometry: np.ndarray[float], gradient: np.ndarray[float], gamma: float = DEFAULT_CONSTANTS['GAMMA']) -> np.ndarray[float]:
     '''
     Steps a geometric system based on steepest descent gradient method.
 
     Args:
-        geometry (np.ndarray): Matrix (N,3) of nuclear coordinates.
-        gradient (np.ndarray): Matrix (N,3) of gradients.
+        geometry (np.ndarray[float]): Matrix (N,3) of nuclear coordinates.
+        gradient (np.ndarray[float]): Matrix (N,3) of gradients.
         gamma (float): Step size.
 
     Returns:
-        np.ndarray: Resultant geometry; matrix (N,3) of nuclear coordinates.
+        np.ndarray[float]: Resultant geometry; matrix (N,3) of nuclear coordinates.
     '''
 
     return geometry + gamma * gradient
 
-def check_convergence(prior_obj: np.ndarray[float], obj: np.ndarray[float], d_obj: np.ndarray[float], d_pen: np.ndarray, sigma: float = DEFAULT_CONSTANTS['SIGMA'], step_tol: float = DEFAULT_CONSTANTS['STEP_TOL'], grad_tol: float = DEFAULT_CONSTANTS['GRAD_TOL']) -> bool:
+def check_convergence(prior_obj: np.ndarray[float], obj: np.ndarray[float], d_obj: np.ndarray[float], d_pen: np.ndarray[float], sigma: float = DEFAULT_CONSTANTS['SIGMA'], step_tol: float = DEFAULT_CONSTANTS['STEP_TOL'], grad_tol: float = DEFAULT_CONSTANTS['GRAD_TOL']) -> bool:
     c1 = c2 = c3 = False
 
     # Change in objective
