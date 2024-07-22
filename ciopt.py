@@ -73,18 +73,17 @@ def check_convergence(prior_obj: np.ndarray[float], obj: np.ndarray[float], d_ob
     c1 = np.abs(prior_obj - obj) <= step_tol
 
     # Unit vector along penalty
-    u = d_pen / np.linalg.norm(d_pen)
+    u = d_pen / np.linalg.norm(d_pen, axis=1, keepdims=True)
 
     # Component of objective parallel to penalty direction
-    d_obj_parallel = (1 / sigma) * np.dot(d_obj, u)
-    c2 = np.abs(d_obj_parallel) <= grad_tol
+    d_obj_parallel = (1 / 3.5) * np.sum(d_obj * u, axis=1)
+    c2 = np.any(np.abs(d_obj_parallel)) <= grad_tol
 
     # Component of objective perpendicular to penalty direction
-    d_obj_perpendicular = d_obj - d_obj_parallel * u
-    c3 = np.linalg.norm(d_obj_perpendicular) <= grad_tol
+    d_obj_perpendicular = d_obj - np.sum(d_obj * u, axis=1, keepdims=True) * u
+    c3 = np.any(np.linalg.norm(d_obj_perpendicular, axis=1)) <= grad_tol
 
     return c1 and c2 and c3
-
 
 if __name__ == '__main__':
 
