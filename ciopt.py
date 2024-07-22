@@ -10,7 +10,7 @@ DEFAULT_CONSTANTS = {
     'GRAD_TOL': 0.0005      # Hartree/Bohr
 }
 
-def levine_method(e_i: float, e_j: float, d_e_i: np.ndarray[float], d_e_j: np.ndarray[float], alpha: float = DEFAULT_CONSTANTS['ALPHA'], sigma: float = DEFAULT_CONSTANTS['SIGMA']) -> list[np.ndarray[float], np.ndarray[float]]:
+def levine_method(e_i: float, e_j: float, d_e_i: np.ndarray[float], d_e_j: np.ndarray[float], alpha: float = DEFAULT_CONSTANTS['ALPHA'], sigma: float = DEFAULT_CONSTANTS['SIGMA']) -> list[float, float, np.ndarray[float], np.ndarray[float]]:
     '''
     Based on Levine pg. 407 eq. 7.
     
@@ -76,13 +76,14 @@ def check_convergence(prior_obj: np.ndarray[float], obj: np.ndarray[float], d_ob
     u = d_pen / np.linalg.norm(d_pen, axis=1, keepdims=True)
 
     # Component of objective parallel to penalty direction
-    d_obj_parallel = (1 / 3.5) * np.sum(d_obj * u, axis=1)
-    c2 = np.any(np.abs(d_obj_parallel)) <= grad_tol
+    d_obj_parallel = (1 / sigma) * np.sum(d_obj * u, axis=1)
+    c2 = np.all(np.abs(d_obj_parallel) <= grad_tol)
 
     # Component of objective perpendicular to penalty direction
     d_obj_perpendicular = d_obj - np.sum(d_obj * u, axis=1, keepdims=True) * u
-    c3 = np.any(np.linalg.norm(d_obj_perpendicular, axis=1)) <= grad_tol
+    c3 = np.any(np.linalg.norm(d_obj_perpendicular, axis=1) <= grad_tol)
 
+    print(c1, c2, c3)
     return c1 and c2 and c3
 
 if __name__ == '__main__':
