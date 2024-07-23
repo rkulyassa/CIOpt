@@ -109,7 +109,7 @@ if __name__ == '__main__':
     prior_obj = None # keeps track of the objective in the previous iteration, used in convergence criteria
     i = 0
 
-    while not converged and i <= int(input['max_iter']):
+    while not converged and i < int(input['max_iter']):
 
         # Get energy data
         e = interface.parse_energy(i)
