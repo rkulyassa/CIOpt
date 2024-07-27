@@ -67,7 +67,19 @@ def steepest_gradient_descent(geometry: np.ndarray[float], gradient: np.ndarray[
         np.ndarray[float]: Resultant geometry; matrix (N,3) of nuclear coordinates.
     '''
 
-    return geometry + gamma * gradient
+    return geometry - gamma * gradient
+
+def backtracking_line_search(geometry, gradient, obj, levine_method, e_total_i, e_total_j, e_grad_i, e_grad_j, alpha, sigma, gamma=DEFAULT_CONSTANTS['GAMMA'], rho=0.5, c=1e-4):
+    new_geometry = geometry
+    while True:
+        candidate_geometry = steepest_gradient_descent(geometry, gradient, gamma)
+        levine_data_new = levine_method(e_total_i, e_total_j, e_grad_i, e_grad_j, alpha, sigma)
+        obj_new = levine_data_new[0]
+        if obj_new <= obj - c * gamma * np.linalg.norm(gradient)**2:
+            new_geometry = candidate_geometry
+            break
+        gamma *= rho
+    return new_geometry
 
 def check_convergence(prior_obj: np.ndarray[float], obj: np.ndarray[float], d_obj: np.ndarray[float], d_pen: np.ndarray[float], sigma: float = DEFAULT_CONSTANTS['SIGMA'], step_tol: float = DEFAULT_CONSTANTS['STEP_TOL'], grad_tol: float = DEFAULT_CONSTANTS['GRAD_TOL']) -> bool:
     c1 = c2 = c3 = False
@@ -111,6 +123,8 @@ if __name__ == '__main__':
     converged = False
     prior_obj = None # keeps track of the objective in the previous iteration, used in convergence criteria
     sigma = float(input['sigma'])
+    alpha = float(input['alpha'])
+    gamma = float(input['gamma'])
     i = 0
 
     while not converged and i < int(input['max_iter']):
@@ -146,7 +160,8 @@ if __name__ == '__main__':
                 break
 
         prior_obj = obj
-        stepped_geometry = steepest_gradient_descent(current_geometry, d_obj)
+        # stepped_geometry = steepest_gradient_descent(current_geometry, d_obj)
+        stepped_geometry = backtracking_line_search(current_geometry, d_obj, obj, levine_method, e_total_i, e_total_j, e_grad_i, e_grad_j, alpha, sigma, gamma)
         
         # Write geometry
         interface.write_geometry(stepped_geometry)
