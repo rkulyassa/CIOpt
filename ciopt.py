@@ -5,6 +5,7 @@ from interfaces import TeraChemIO
 DEFAULT_CONSTANTS = {
     'ALPHA': 0.02,          # Hartree
     'SIGMA': 3.5,           # Hartree
+    'DELTA': 0.001,         # Hartee, initial energy gap required for CI
     'GAMMA': 0.01,          # Step size
     'STEP_TOL': 0.000001,   # Hartree
     'GRAD_TOL': 0.0005      # Hartree/Bohr
@@ -27,20 +28,19 @@ def levine_method(e_i: float, e_j: float, d_e_i: np.ndarray[float], d_e_j: np.nd
         np.ndarray[float]: Matrix (N,3) of penalty gradients for each atom.
     '''
 
-    # Merge energy gradient matrices into one matrix (N,2,3). N atoms, 2 states, 3 dimensions
-    d_e = np.stack((d_e_i, d_e_j), axis=1)
-
     # Energy difference
     e_diff = e_i - e_j
 
     # Energy derivative differences
-    d_e_diff = d_e[:, 0, :] - d_e[:, 1, :]
+    # d_e_diff = d_e[:, 0, :] - d_e[:, 1, :]
+    d_e_diff = d_e_i - d_e_j
 
     # Energy derivative averages
-    d_e_avg = np.mean(d_e, axis=1)
-    
+    # d_e_avg = np.mean(d_e, axis=1)
+    d_e_avg = (d_e_i + d_e_j) / 2.0
+
     # Penalty fn. gradient matrix
-    d_pen = ((e_diff * e_diff + 2 * alpha * e_diff) / ((e_diff + alpha) * (e_diff + alpha))) * d_e_diff
+    d_pen = ((e_diff ** 2 + 2 * alpha * e_diff) / ((e_diff + alpha) ** 2)) * d_e_diff
 
     # Objective fn. gradient matrix
     d_obj = d_e_avg + sigma * d_pen
@@ -50,6 +50,7 @@ def levine_method(e_i: float, e_j: float, d_e_i: np.ndarray[float], d_e_j: np.nd
     obj = (e_i + e_j)/2 + sigma * pen
 
     return [obj, pen, d_obj, d_pen]
+
 
 def steepest_gradient_descent(geometry: np.ndarray[float], gradient: np.ndarray[float], gamma: float = DEFAULT_CONSTANTS['GAMMA']) -> np.ndarray[float]:
     '''
@@ -130,6 +131,10 @@ if __name__ == '__main__':
         pen = levine_data[1]
         d_obj = levine_data[2]
         d_pen = levine_data[3]
+
+        if e_total_j - e_total_i >= DEFAULT_CONSTANTS['DELTA']:
+            DEFAULT_CONSTANTS['SIGMA'] += 1
+            print(DEFAULT_CONSTANTS['SIGMA'])
 
         # Check convergence criteria
         if i > 0:
