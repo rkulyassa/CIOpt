@@ -28,6 +28,8 @@ def levine_method(e_i: float, e_j: float, d_e_i: np.ndarray[float], d_e_j: np.nd
         np.ndarray[float]: Matrix (N,3) of penalty gradients for each atom.
     '''
 
+    print(sigma)
+
     # Energy difference
     e_diff = e_i - e_j
 
@@ -108,6 +110,7 @@ if __name__ == '__main__':
     # Runtime vars
     converged = False
     prior_obj = None # keeps track of the objective in the previous iteration, used in convergence criteria
+    sigma = float(input['sigma'])
     i = 0
 
     while not converged and i < int(input['max_iter']):
@@ -126,15 +129,14 @@ if __name__ == '__main__':
         current_geometry = interface.parse_geometry()[3]
 
         # Calculate objective and penalty gradients
-        levine_data = levine_method(e_total_i, e_total_j, e_grad_i, e_grad_j, float(input['alpha']), float(input['sigma']))
+        levine_data = levine_method(e_total_i, e_total_j, e_grad_i, e_grad_j, float(input['alpha']), sigma)
         obj = levine_data[0]
         pen = levine_data[1]
         d_obj = levine_data[2]
         d_pen = levine_data[3]
 
         if e_total_j - e_total_i >= DEFAULT_CONSTANTS['DELTA']:
-            DEFAULT_CONSTANTS['SIGMA'] += 1
-            print(DEFAULT_CONSTANTS['SIGMA'])
+            sigma += 1
 
         # Check convergence criteria
         if i > 0:
