@@ -148,7 +148,7 @@ if __name__ == '__main__':
                 break
 
         prior_obj = obj
-        stepped_geometry = steepest_gradient_descent(current_geometry, d_obj)
+        stepped_geometry = steepest_gradient_descent(current_geometry, d_obj, gamma)
 
         # Write geometry
         interface.write_geometry(stepped_geometry)
